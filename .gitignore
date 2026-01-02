@@ -43,6 +43,7 @@ coverage/
 # Firebase
 firebase-debug.log
 .runtimeconfig.json
+game-408ac-firebase-adminsdk-fbsvc-3b8b63dd38.json
 
 # Prisma
 prisma/migrations/
