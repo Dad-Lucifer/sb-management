@@ -1,16 +1,16 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-
+import { getAuth, setPersistence, inMemoryPersistence } from "firebase/auth";
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCfHw1PRkqQy-6G4xa34uWmEJUlQlgM63E",
-  authDomain: "game-408ac.firebaseapp.com",
-  projectId: "game-408ac",
-  storageBucket: "game-408ac.firebasestorage.app",
-  messagingSenderId: "718848867890",
-  appId: "1:718848867890:web:53cd26080a9ec82d6d862b",
-  measurementId: "G-2Q85WQW125"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 
@@ -19,3 +19,9 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// Force login on every reload by using in-memory persistence
+setPersistence(auth, inMemoryPersistence).catch((error) => {
+  console.error("Error setting persistence:", error);
+});

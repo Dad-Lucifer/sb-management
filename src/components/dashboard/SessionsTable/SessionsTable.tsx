@@ -15,14 +15,14 @@ export function SessionsTable({
 }: SessionsTableProps) {
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-light text-white mb-2">Customer Sessions</h2>
-                    <p className="text-gray-500 text-sm">Complete overview of all gaming sessions</p>
+                    <h2 className="text-xl md:text-2xl font-light text-white mb-1">Customer Sessions</h2>
+                    <p className="text-gray-500 text-xs md:text-sm">Complete overview of all gaming sessions</p>
                 </div>
                 <Button
                     onClick={handleDownloadExcel}
-                    className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                    className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2 h-12 md:h-10 text-base md:text-sm"
                 >
                     <Download className="w-4 h-4" />
                     Download Excel
@@ -38,46 +38,112 @@ export function SessionsTable({
                     <p className="text-gray-600 text-sm mt-1">Add customers to see the table view</p>
                 </div>
             ) : (
-                <div className="bg-gray-900/30 border border-gray-800 rounded-xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-900/50 border-b border-gray-800">
-                                <tr>
-                                    <th className="text-left p-4 text-gray-400 font-medium text-sm uppercase tracking-wider">Customer</th>
-                                    <th className="text-left p-4 text-gray-400 font-medium text-sm uppercase tracking-wider">Phone</th>
-                                    <th className="text-left p-4 text-gray-400 font-medium text-sm uppercase tracking-wider">People</th>
-                                    <th className="text-left p-4 text-gray-400 font-medium text-sm uppercase tracking-wider">Duration</th>
-                                    <th className="text-left p-4 text-gray-400 font-medium text-sm uppercase tracking-wider">Snacks</th>
-                                    <th className="text-left p-4 text-gray-400 font-medium text-sm uppercase tracking-wider">Total</th>
-                                    <th className="text-left p-4 text-gray-400 font-medium text-sm uppercase tracking-wider">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-800">
-                                {recentEntries.map((entry) => (
-                                    <tr
-                                        key={entry.id}
-                                        onClick={() => openEntryDetails(entry)}
-                                        className="hover:bg-gray-900/30 transition-colors duration-200 cursor-pointer"
-                                    >
-                                        <td className="p-4">
-                                            <div className="font-medium text-white">{entry.customerName}</div>
-                                        </td>
-                                        <td className="p-4 text-gray-400">{entry.phoneNumber}</td>
-                                        <td className="p-4 text-gray-400">{entry.numberOfPeople || 1}</td>
-                                        <td className="p-4 text-gray-400">{entry.duration}h</td>
-                                        <td className="p-4 text-gray-400 capitalize">{entry.snacks.map(s => s.name).join(', ') || 'None'}</td>
-                                        <td className="p-4">
-                                            <span className="font-medium text-blue-500">₹{entry.subTotal.toFixed(2)}</span>
-                                        </td>
-                                        <td className="p-4 text-gray-500 text-sm">
-                                            {entry.timestamp.toLocaleString()}
-                                        </td>
+                <>
+                    {/* Desktop/Tablet View */}
+                    <div className="hidden md:block bg-gray-900/30 border border-gray-800 rounded-xl overflow-hidden backdrop-blur-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-900/50 border-b border-gray-800 text-xs uppercase tracking-wider text-gray-400">
+                                    <tr>
+                                        <th className="text-left p-4 font-semibold">Customer</th>
+                                        <th className="text-left p-4 font-semibold">Phone</th>
+                                        <th className="text-center p-4 font-semibold">People</th>
+                                        <th className="text-center p-4 font-semibold">Duration</th>
+                                        <th className="text-left p-4 font-semibold">Snacks</th>
+                                        <th className="text-right p-4 font-semibold">Total</th>
+                                        <th className="text-right p-4 font-semibold">Time</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-800/50">
+                                    {recentEntries.map((entry) => (
+                                        <tr
+                                            key={entry.id}
+                                            onClick={() => openEntryDetails(entry)}
+                                            className="hover:bg-blue-900/10 transition-colors duration-200 cursor-pointer group"
+                                        >
+                                            <td className="p-4">
+                                                <div className="font-bold text-white group-hover:text-blue-400 transition-colors">{entry.customerName}</div>
+                                            </td>
+                                            <td className="p-4 text-gray-400 font-mono text-sm">{entry.phoneNumber}</td>
+                                            <td className="p-4 text-center text-gray-300">
+                                                <span className="inline-flex items-center justify-center bg-gray-800 rounded-md px-2 py-1 text-xs">
+                                                    {entry.numberOfPeople || 1}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center text-gray-300">
+                                                <span className="inline-flex items-center justify-center bg-gray-800 rounded-md px-2 py-1 text-xs">
+                                                    {entry.duration}h
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-sm text-gray-400 max-w-[200px] truncate">
+                                                    {entry.snacks.length > 0
+                                                        ? entry.snacks.map(s => `${s.quantity}x ${s.name}`).join(', ')
+                                                        : <span className="text-gray-600 italic">No snacks</span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <span className="font-bold text-blue-500 text-base">₹{entry.subTotal.toFixed(0)}</span>
+                                            </td>
+                                            <td className="p-4 text-right text-gray-500 text-xs font-mono">
+                                                {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                <br />
+                                                {new Date(entry.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden space-y-3">
+                        {recentEntries.map((entry) => (
+                            <div
+                                key={entry.id}
+                                onClick={() => openEntryDetails(entry)}
+                                className="bg-gray-900/40 border border-gray-800 rounded-xl p-4 active:scale-[0.98] transition-all cursor-pointer hover:border-blue-500/30"
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white mb-0.5">{entry.customerName}</h3>
+                                        <p className="text-xs text-gray-500 font-mono">{entry.phoneNumber}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xl font-black text-blue-500">₹{entry.subTotal.toFixed(0)}</div>
+                                        <div className="text-[10px] text-gray-500">{new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 mb-3">
+                                    <div className="bg-gray-800/50 rounded-lg p-2 text-center border border-gray-800">
+                                        <div className="text-[10px] text-gray-500 uppercase">Duration</div>
+                                        <div className="text-sm font-semibold text-gray-300">{entry.duration}h</div>
+                                    </div>
+                                    <div className="bg-gray-800/50 rounded-lg p-2 text-center border border-gray-800">
+                                        <div className="text-[10px] text-gray-500 uppercase">People</div>
+                                        <div className="text-sm font-semibold text-gray-300">{entry.numberOfPeople || 1}</div>
+                                    </div>
+                                </div>
+
+                                {entry.snacks.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-800/50">
+                                        <div className="text-[10px] text-gray-500 uppercase mb-1.5">Snack Orders</div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {entry.snacks.map((s, idx) => (
+                                                <span key={idx} className="inline-flex items-center bg-blue-900/20 text-blue-300 text-xs px-2 py-0.5 rounded border border-blue-500/10">
+                                                    <span className="font-bold mr-1">{s.quantity}x</span> {s.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     )

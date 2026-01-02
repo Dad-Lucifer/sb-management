@@ -17,6 +17,7 @@ export interface EntryDetailsDialogProps {
     isOpen: boolean
     onClose: () => void
     onSave: (duration: number, numberOfPeople: number, snacks: SnackOrder[]) => void
+    readOnly?: boolean
 }
 
 
@@ -24,7 +25,8 @@ export function EntryDetailsDialog({
     entry,
     isOpen,
     onClose,
-    onSave
+    onSave,
+    readOnly = false
 }: EntryDetailsDialogProps) {
     const [editDuration, setEditDuration] = useState('')
     const [editNumberOfPeople, setEditNumberOfPeople] = useState('1')
@@ -160,7 +162,7 @@ export function EntryDetailsDialog({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                        className="relative w-full max-w-5xl max-h-[95vh] bg-gradient-to-br from-gray-900 via-black to-gray-900 rounded-3xl shadow-2xl overflow-hidden border border-gray-800/50"
+                        className="relative w-full md:w-[95vw] max-w-5xl h-[100dvh] md:h-auto md:max-h-[95vh] bg-gradient-to-br from-gray-900 via-black to-gray-900 md:rounded-3xl shadow-2xl overflow-hidden border-0 md:border border-gray-800/50 flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Glassmorphism Overlay */}
@@ -245,17 +247,17 @@ export function EntryDetailsDialog({
                                     className="flex flex-col h-full"
                                 >
                                     {/* Header */}
-                                    <div className="relative z-10 border-b border-gray-800/50 bg-black/60 backdrop-blur-xl p-6">
+                                    <div className="relative z-10 border-b border-gray-800/50 bg-black/60 backdrop-blur-xl p-4 md:p-6 shrink-0">
 
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex items-center gap-5">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-center gap-3 md:gap-5">
                                                 {/* Animated Avatar */}
                                                 <motion.div
                                                     className="relative"
                                                     whileHover={{ scale: 1.05 }}
                                                     transition={{ type: "spring", stiffness: 400 }}
                                                 >
-                                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/30 relative overflow-hidden">
+                                                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 flex items-center justify-center text-white text-lg md:text-2xl font-bold shadow-lg shadow-blue-500/30 relative overflow-hidden">
                                                         {entry.customerName.charAt(0).toUpperCase()}
                                                         {/* Shine effect */}
                                                         <motion.div
@@ -273,24 +275,24 @@ export function EntryDetailsDialog({
                                                 </motion.div>
 
                                                 <div>
-                                                    <div className="flex items-center gap-3 mb-1">
-                                                        <h2 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+                                                    <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 mb-0.5 md:mb-1">
+                                                        <h2 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
                                                             Session Control
                                                         </h2>
                                                         {entry.isRenewed && (
                                                             <motion.span
                                                                 initial={{ scale: 0 }}
                                                                 animate={{ scale: 1 }}
-                                                                className="flex items-center gap-1 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-3 py-1 rounded-full font-bold shadow-lg shadow-yellow-500/30"
+                                                                className="flex items-center gap-1 text-[10px] md:text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-2 md:px-3 py-0.5 md:py-1 rounded-full font-bold shadow-lg shadow-yellow-500/30 self-start"
                                                             >
                                                                 <Crown className="w-3 h-3" />
                                                                 RENEWED
                                                             </motion.span>
                                                         )}
                                                     </div>
-                                                    <p className="text-gray-400 text-sm flex items-center gap-2">
-                                                        <Sparkles className="w-4 h-4 text-blue-400" />
-                                                        Customize session parameters and order supplies
+                                                    <p className="text-gray-400 text-xs md:text-sm flex items-center gap-2">
+                                                        <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
+                                                        Customize session parameters
                                                     </p>
                                                 </div>
                                             </div>
@@ -299,15 +301,15 @@ export function EntryDetailsDialog({
                                                 onClick={onClose}
                                                 whileHover={{ scale: 1.1, rotate: 90 }}
                                                 whileTap={{ scale: 0.9 }}
-                                                className="p-2.5 hover:bg-gray-800/80 rounded-xl transition-all text-gray-400 hover:text-white border border-transparent hover:border-gray-700"
+                                                className="p-2 md:p-2.5 hover:bg-gray-800/80 rounded-xl transition-all text-gray-400 hover:text-white border border-transparent hover:border-gray-700 bg-gray-800/50 md:bg-transparent"
                                             >
-                                                <X className="w-5 h-5" />
+                                                <X className="w-4 h-4 md:w-5 md:h-5" />
                                             </motion.button>
                                         </div>
                                     </div>
 
                                     {/* Content */}
-                                    <ScrollArea className="relative z-10 h-[calc(95vh-280px)] p-6">
+                                    <ScrollArea className="relative z-10 flex-1 p-4 md:p-6 custom-scrollbar">
                                         <div className="space-y-5">
                                             {/* Customer Information */}
                                             <motion.div
@@ -429,14 +431,16 @@ export function EntryDetailsDialog({
                                                                                 min="0.5"
                                                                                 value={editDuration}
                                                                                 onChange={(e) => setEditDuration(e.target.value)}
+                                                                                readOnly={readOnly}
                                                                                 className={cn(
                                                                                     "bg-gray-900/80 border-2 text-white text-2xl font-bold h-14 text-center transition-all duration-300",
-                                                                                    isTimeExtended
-                                                                                        ? "border-yellow-500/50 ring-4 ring-yellow-500/20 shadow-lg shadow-yellow-500/20"
-                                                                                        : "border-gray-700 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/20"
+                                                                                    readOnly ? "cursor-not-allowed text-gray-400 border-gray-800" :
+                                                                                        isTimeExtended
+                                                                                            ? "border-yellow-500/50 ring-4 ring-yellow-500/20 shadow-lg shadow-yellow-500/20"
+                                                                                            : "border-gray-700 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/20"
                                                                                 )}
                                                                             />
-                                                                            {isTimeExtended && (
+                                                                            {isTimeExtended && !readOnly && (
                                                                                 <motion.div
                                                                                     initial={{ scale: 0 }}
                                                                                     animate={{ scale: 1 }}
@@ -447,28 +451,30 @@ export function EntryDetailsDialog({
                                                                                 </motion.div>
                                                                             )}
                                                                         </div>
-                                                                        <div className="grid grid-cols-2 gap-2">
-                                                                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => setEditDuration((parseFloat(editDuration) + 0.5).toString())}
-                                                                                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 border-0 shadow-lg shadow-blue-500/20 font-semibold"
-                                                                                >
-                                                                                    <Plus className="w-4 h-4 mr-1" />
-                                                                                    +30 min
-                                                                                </Button>
-                                                                            </motion.div>
-                                                                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => setEditDuration(Math.max(0.5, parseFloat(editDuration) - 0.5).toString())}
-                                                                                    className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 font-semibold"
-                                                                                >
-                                                                                    <Minus className="w-4 h-4 mr-1" />
-                                                                                    -30 min
-                                                                                </Button>
-                                                                            </motion.div>
-                                                                        </div>
+                                                                        {!readOnly && (
+                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        onClick={() => setEditDuration((parseFloat(editDuration) + 0.5).toString())}
+                                                                                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 border-0 shadow-lg shadow-blue-500/20 font-semibold"
+                                                                                    >
+                                                                                        <Plus className="w-4 h-4 mr-1" />
+                                                                                        +30 min
+                                                                                    </Button>
+                                                                                </motion.div>
+                                                                                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        onClick={() => setEditDuration(Math.max(0.5, parseFloat(editDuration) - 0.5).toString())}
+                                                                                        className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 font-semibold"
+                                                                                    >
+                                                                                        <Minus className="w-4 h-4 mr-1" />
+                                                                                        -30 min
+                                                                                    </Button>
+                                                                                </motion.div>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
 
                                                                     {/* Number of People */}
@@ -485,6 +491,33 @@ export function EntryDetailsDialog({
                                                                         />
                                                                     </div>
                                                                 </div>
+
+                                                                {/* Immediate Apply Button */}
+                                                                {!readOnly && (
+                                                                    <div className="mt-8">
+                                                                        <Button
+                                                                            onClick={handleSubmit}
+                                                                            className={cn(
+                                                                                "w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg",
+                                                                                isTimeExtended
+                                                                                    ? "bg-yellow-500 hover:bg-yellow-400 text-black shadow-yellow-500/20"
+                                                                                    : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20"
+                                                                            )}
+                                                                        >
+                                                                            {isTimeExtended ? (
+                                                                                <>
+                                                                                    <TrendingUp className="w-5 h-5 mr-2" />
+                                                                                    Confirm Extension & Update
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Check className="w-5 h-5 mr-2" />
+                                                                                    Apply Updates
+                                                                                </>
+                                                                            )}
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </motion.div>
                                                     ) : (
@@ -638,15 +671,17 @@ export function EntryDetailsDialog({
                                                                                                 </div>
 
                                                                                                 <div className="flex items-center gap-2 ml-3 relative z-10">
-                                                                                                    <motion.button
-                                                                                                        whileHover={{ scale: 1.1 }}
-                                                                                                        whileTap={{ scale: 0.9 }}
-                                                                                                        onClick={() => handleEditSnackChange(item.id, -1)}
-                                                                                                        disabled={quantity === 0}
-                                                                                                        className="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 hover:border-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md"
-                                                                                                    >
-                                                                                                        <Minus className="w-3.5 h-3.5" />
-                                                                                                    </motion.button>
+                                                                                                    {!readOnly && (
+                                                                                                        <motion.button
+                                                                                                            whileHover={{ scale: 1.1 }}
+                                                                                                            whileTap={{ scale: 0.9 }}
+                                                                                                            onClick={() => handleEditSnackChange(item.id, -1)}
+                                                                                                            disabled={quantity === 0}
+                                                                                                            className="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 hover:border-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md"
+                                                                                                        >
+                                                                                                            <Minus className="w-3.5 h-3.5" />
+                                                                                                        </motion.button>
+                                                                                                    )}
 
                                                                                                     <motion.span
                                                                                                         key={quantity}
@@ -657,14 +692,16 @@ export function EntryDetailsDialog({
                                                                                                         {quantity}
                                                                                                     </motion.span>
 
-                                                                                                    <motion.button
-                                                                                                        whileHover={{ scale: 1.1 }}
-                                                                                                        whileTap={{ scale: 0.9 }}
-                                                                                                        onClick={() => handleEditSnackChange(item.id, 1)}
-                                                                                                        className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-purple-700 border border-purple-500 flex items-center justify-center text-white hover:from-purple-500 hover:to-purple-600 transition-all shadow-lg shadow-purple-500/30"
-                                                                                                    >
-                                                                                                        <Plus className="w-3.5 h-3.5" />
-                                                                                                    </motion.button>
+                                                                                                    {!readOnly && (
+                                                                                                        <motion.button
+                                                                                                            whileHover={{ scale: 1.1 }}
+                                                                                                            whileTap={{ scale: 0.9 }}
+                                                                                                            onClick={() => handleEditSnackChange(item.id, 1)}
+                                                                                                            className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-purple-700 border border-purple-500 flex items-center justify-center text-white hover:from-purple-500 hover:to-purple-600 transition-all shadow-lg shadow-purple-500/30"
+                                                                                                        >
+                                                                                                            <Plus className="w-3.5 h-3.5" />
+                                                                                                        </motion.button>
+                                                                                                    )}
                                                                                                 </div>
                                                                                             </motion.div>
                                                                                         )
@@ -683,7 +720,7 @@ export function EntryDetailsDialog({
                                     </ScrollArea>
 
                                     {/* Footer */}
-                                    <div className="relative z-10 border-t border-gray-800/50 bg-black/80 backdrop-blur-xl p-6">
+                                    <div className="relative z-10 border-t border-gray-800/50 bg-black/80 backdrop-blur-xl p-4 md:p-6 shrink-0 hidden md:block">
                                         <div className="flex items-center justify-between mb-5">
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -721,30 +758,72 @@ export function EntryDetailsDialog({
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-3">
-                                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={readOnly ? "col-span-2" : ""}>
                                                 <Button
                                                     onClick={handleCancel}
                                                     className="w-full h-14 bg-gray-800/80 hover:bg-gray-700 border-2 border-gray-700 hover:border-gray-600 text-gray-300 hover:text-white font-bold text-base shadow-lg"
                                                 >
                                                     <X className="w-5 h-5 mr-2" />
-                                                    Cancel
+                                                    {readOnly ? "Close" : "Cancel"}
                                                 </Button>
                                             </motion.div>
-                                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                            {!readOnly && (
+                                                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                                    <Button
+                                                        onClick={handleSubmit}
+                                                        className="w-full h-14 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-600 hover:from-blue-500 hover:via-blue-600 hover:to-blue-500 text-white font-bold text-base shadow-xl shadow-blue-500/30 border-0 relative overflow-hidden group"
+                                                    >
+                                                        {/* Animated shine */}
+                                                        <motion.div
+                                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                                                            animate={{ x: ['-100%', '100%'] }}
+                                                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                                                        />
+                                                        <Check className="w-5 h-5 mr-2 relative z-10" />
+                                                        <span className="relative z-10">Save Changes</span>
+                                                    </Button>
+                                                </motion.div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Mobile Responsive Footer */}
+                                    <div className="relative z-20 border-t border-gray-800/80 bg-gray-900/95 backdrop-blur-xl p-4 shrink-0 md:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Total Estimate</span>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-sm text-gray-500">₹</span>
+                                                    <span className="text-2xl font-black text-white">{calculateEditSubTotal().toFixed(0)}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-0.5">
+                                                <div className="flex items-center gap-1.5 bg-gray-800/50 px-2 py-1 rounded-lg border border-gray-700/50">
+                                                    <Clock className="w-3 h-3 text-blue-400" />
+                                                    <span className="text-xs font-mono text-gray-300">{editDuration}h</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 bg-gray-800/50 px-2 py-1 rounded-lg border border-gray-700/50">
+                                                    <ShoppingCart className="w-3 h-3 text-purple-400" />
+                                                    <span className="text-xs font-mono text-gray-300">{totalItems} itms</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className={readOnly ? "grid grid-cols-1" : "grid grid-cols-2 gap-3"}>
+                                            <Button
+                                                onClick={handleCancel}
+                                                variant="outline"
+                                                className="h-12 bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white font-semibold rounded-xl w-full"
+                                            >
+                                                {readOnly ? "Close" : "Cancel"}
+                                            </Button>
+                                            {!readOnly && (
                                                 <Button
                                                     onClick={handleSubmit}
-                                                    className="w-full h-14 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-600 hover:from-blue-500 hover:via-blue-600 hover:to-blue-500 text-white font-bold text-base shadow-xl shadow-blue-500/30 border-0 relative overflow-hidden group"
+                                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20"
                                                 >
-                                                    {/* Animated shine */}
-                                                    <motion.div
-                                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                                                        animate={{ x: ['-100%', '100%'] }}
-                                                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-                                                    />
-                                                    <Check className="w-5 h-5 mr-2 relative z-10" />
-                                                    <span className="relative z-10">Save Changes</span>
+                                                    Save Changes
                                                 </Button>
-                                            </motion.div>
+                                            )}
                                         </div>
                                     </div>
                                 </motion.div>

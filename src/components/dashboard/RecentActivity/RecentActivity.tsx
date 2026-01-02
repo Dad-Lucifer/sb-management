@@ -42,13 +42,13 @@ export function RecentActivity({
             {/* Minimal Header & Menu */}
             <div className="flex items-center justify-between px-1">
                 <div className="flex flex-col">
-                    <h2 className="text-xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent flex items-center gap-2">
                         Station Feed
                         <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                         >
-                            <Activity className="w-4 h-4 text-blue-500" />
+                            <Activity className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500" />
                         </motion.div>
                     </h2>
                     <p className="text-gray-500 text-[10px] uppercase tracking-widest font-medium">Live Monitoring</p>
@@ -73,12 +73,12 @@ export function RecentActivity({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 min-h-[500px] relative rounded-3xl overflow-hidden bg-gradient-to-b from-gray-900/40 to-black/40 border border-gray-800/50 backdrop-blur-xl shadow-2xl">
+            <div className="flex-1 min-h-[400px] md:min-h-[500px] relative rounded-3xl overflow-hidden bg-gradient-to-b from-gray-900/40 to-black/40 border border-gray-800/50 backdrop-blur-xl shadow-2xl">
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 p-20 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute bottom-0 left-0 p-20 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                <ScrollArea className="h-[600px]">
+                <ScrollArea className="h-[400px] md:h-[600px]">
                     <div className="p-4 space-y-3">
                         <AnimatePresence mode='popLayout'>
                             {filteredEntries.length === 0 ? (
@@ -107,7 +107,7 @@ function TabButton({ active, onClick, icon: Icon, label, count }: { active: bool
         <button
             onClick={onClick}
             className={cn(
-                "relative px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 overflow-hidden",
+                "relative px-3 py-1 md:px-4 md:py-1.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 overflow-hidden",
                 active ? "text-white" : "text-gray-500 hover:text-gray-300"
             )}
         >
@@ -184,7 +184,7 @@ function ActivityCard({
             className="group cursor-pointer"
         >
             <div className={cn(
-                "relative p-4 rounded-2xl border transition-all duration-300 overflow-hidden",
+                "relative p-3 md:p-4 rounded-2xl border transition-all duration-300 overflow-hidden",
                 "bg-black/40 hover:bg-gray-900/60 backdrop-blur-md",
                 isWarning
                     ? "border-yellow-500/30 shadow-[0_0_30px_-10px_rgba(234,179,8,0.1)]"
@@ -192,11 +192,11 @@ function ActivityCard({
                         ? "border-gray-800/50 opacity-70 hover:opacity-100"
                         : "border-gray-800 hover:border-blue-500/30 hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.1)]"
             )}>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 md:gap-4">
                     {/* AVATAR with Circular Progress */}
                     <div className="relative">
                         {/* Progress Ring Background */}
-                        <svg className="w-14 h-14 -rotate-90">
+                        <svg className="w-12 h-12 md:w-14 md:h-14 -rotate-90" viewBox="0 0 56 56">
                             <circle
                                 cx="28" cy="28" r="26"
                                 className="stroke-gray-800 fill-none"
@@ -220,7 +220,7 @@ function ActivityCard({
                         {/* Avatar Content */}
                         <div className="absolute inset-[5px] rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border border-gray-800">
                             <span className={cn(
-                                "text-lg font-black",
+                                "text-base md:text-lg font-black",
                                 isWarning ? "text-yellow-500" : isExpired ? "text-gray-600" : "text-blue-500"
                             )}>
                                 {entry.customerName.charAt(0).toUpperCase()}
@@ -231,15 +231,15 @@ function ActivityCard({
                         <div className="absolute -bottom-1 -right-1">
                             {isExpired ? (
                                 <div className="bg-gray-800 p-1 rounded-full border border-gray-700">
-                                    <Clock className="w-3 h-3 text-gray-500" />
+                                    <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 text-gray-500" />
                                 </div>
                             ) : isWarning ? (
                                 <div className="bg-yellow-500 p-1 rounded-full border border-yellow-600 animate-pulse">
-                                    <AlertCircle className="w-3 h-3 text-black" />
+                                    <AlertCircle className="w-2.5 h-2.5 md:w-3 md:h-3 text-black" />
                                 </div>
                             ) : (
                                 <div className="bg-blue-500 p-1 rounded-full border border-blue-600">
-                                    <Zap className="w-3 h-3 text-white" />
+                                    <Zap className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" />
                                 </div>
                             )}
                         </div>
@@ -249,7 +249,7 @@ function ActivityCard({
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <h3 className={cn(
-                                "font-bold text-base truncate",
+                                "font-bold text-sm md:text-base truncate",
                                 isExpired ? "text-gray-400" : "text-white"
                             )}>
                                 {entry.customerName}
@@ -280,7 +280,7 @@ function ActivityCard({
                     {/* Right Side Stats */}
                     <div className="text-right flex flex-col items-end gap-2">
                         <div className="flex items-center gap-1.5">
-                            <div className="text-white font-bold text-lg leading-none">
+                            <div className="text-white font-bold text-base md:text-lg leading-none">
                                 <span className="text-xs text-gray-500 mr-0.5 font-normal">₹</span>
                                 {entry.subTotal.toFixed(0)}
                             </div>

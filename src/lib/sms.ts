@@ -9,7 +9,7 @@ export const sendSMS = async (phoneNumber: string, message: string) => {
     }
 
     // 2. Construct URL with parameters (GET request is often more reliable for client-side)
-    const apiKey = 'bYwIv6Pulnp8kiTsLQO1qtrxAVCR7ySGcNaJ53jKXHFmZ9e2oUri7v4B6TKfAsuFVdptPDJzc28NObm0';
+    const apiKey = import.meta.env.VITE_SMS_API_KEY;
     const params = new URLSearchParams({
         authorization: apiKey,
         route: 'q',

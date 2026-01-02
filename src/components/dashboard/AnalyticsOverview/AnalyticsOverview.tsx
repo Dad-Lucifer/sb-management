@@ -46,22 +46,22 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
     const hasRevenue = useMemo(() => revenueData.some(d => d.revenue > 0), [revenueData])
 
     return (
-        <div className="space-y-6 h-full flex flex-col">
+        <div className="space-y-4 md:space-y-6 h-full flex flex-col">
             {/* Header Section */}
-            <div className="flex items-center justify-between px-1">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
                 <div>
-                    <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tight">
+                    <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3 tracking-tight">
                         Command Center
                         <span className="relative flex h-3 w-3">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
                         </span>
                     </h2>
-                    <p className="text-gray-500 text-xs font-medium uppercase tracking-widest mt-1">Live Performance Telemetry</p>
+                    <p className="text-gray-500 text-[10px] md:text-xs font-medium uppercase tracking-widest mt-1">Live Performance Telemetry</p>
                 </div>
 
                 {/* Minimal Tab Switcher */}
-                <div className="flex p-1 bg-gray-900/80 rounded-full border border-gray-800 backdrop-blur-md">
+                <div className="flex p-1 bg-gray-900/80 rounded-full border border-gray-800 backdrop-blur-md self-start md:self-auto overflow-x-auto max-w-full no-scrollbar">
                     <TabButton
                         active={activeTab === 'revenue'}
                         icon={DollarSign}
@@ -84,7 +84,7 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <StatCard
                     label="Total Revenue"
                     value={`₹${overallStats.totalRevenue.toLocaleString()}`}
@@ -120,12 +120,12 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
             </div>
 
             {/* Main Visualizer Area */}
-            <div className="bg-gradient-to-b from-gray-900/50 to-black/50 rounded-3xl border border-gray-800/50 backdrop-blur-xl relative overflow-hidden flex flex-col h-[500px]">
+            <div className="bg-gradient-to-b from-gray-900/50 to-black/50 rounded-2xl md:rounded-3xl border border-gray-800/50 backdrop-blur-xl relative overflow-hidden flex flex-col h-[400px] md:h-[500px]">
                 {/* Background Glows */}
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
 
-                <div className="flex-1 p-6 relative z-10">
+                <div className="flex-1 p-4 md:p-6 relative z-10 min-h-0">
                     <AnimatePresence mode="wait">
                         {activeTab === 'revenue' && (
                             <motion.div
@@ -137,15 +137,15 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                 className="h-full flex flex-col"
                             >
                                 <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-yellow-400" />
+                                    <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
                                         Financial Growth
                                     </h3>
                                 </div>
                                 <div className="flex-1 w-full h-full min-h-0">
                                     {hasRevenue ? (
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={revenueData}>
+                                            <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                 <defs>
                                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                                         <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
@@ -153,8 +153,8 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                                     </linearGradient>
                                                 </defs>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                                                <XAxis dataKey="date" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-                                                <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
+                                                <XAxis dataKey="date" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
+                                                <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
                                                 <Tooltip content={<CustomTooltip />} />
                                                 <Area type="monotone" dataKey="revenue" stroke="#eab308" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                                             </AreaChart>
@@ -174,16 +174,16 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                 className="h-full flex flex-col"
                             >
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <PieChartIcon className="w-5 h-5 text-purple-400" />
+                                    <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                                        <PieChartIcon className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
                                         Inventory Intelligence
                                     </h3>
                                 </div>
 
                                 {snacksData.length > 0 ? (
-                                    <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-hidden">
                                         {/* Chart Side */}
-                                        <div className="relative flex items-center justify-center h-[400px] lg:h-auto">
+                                        <div className="relative flex items-center justify-center h-[200px] sm:h-[300px] lg:h-auto shrink-0 lg:shrink">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
                                                     <Pie
@@ -191,7 +191,7 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                                         cx="50%"
                                                         cy="50%"
                                                         innerRadius={60}
-                                                        outerRadius={90}
+                                                        outerRadius={80}
                                                         paddingAngle={5}
                                                         dataKey="value"
                                                     >
@@ -200,22 +200,22 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                                         ))}
                                                     </Pie>
                                                     <Tooltip content={<CustomTooltip />} />
-                                                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-white text-3xl font-black">
+                                                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-white text-2xl md:text-3xl font-black">
                                                         {snacksData.reduce((a, b) => a + b.value, 0)}
                                                     </text>
-                                                    <text x="50%" y="58%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-xs uppercase tracking-widest font-bold">
-                                                        Items Sold
+                                                    <text x="50%" y="60%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-[10px] uppercase tracking-widest font-bold">
+                                                        Sold
                                                     </text>
                                                 </PieChart>
                                             </ResponsiveContainer>
                                         </div>
 
                                         {/* Leaderboard Side */}
-                                        <div className="overflow-y-auto pr-2 custom-scrollbar lg:max-h-[400px] h-full">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2 sticky top-0 bg-[#0c0c0c] py-2 z-10">
+                                        <div className="overflow-y-auto pr-2 custom-scrollbar lg:max-h-full h-full pb-4">
+                                            <h4 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2 sticky top-0 bg-[#0c0c0c] py-2 z-10 backdrop-blur-sm bg-opacity-90">
                                                 <Trophy className="w-3 h-3 text-yellow-500" /> Top Movers
                                             </h4>
-                                            <div className="space-y-3 pb-4">
+                                            <div className="space-y-2 md:space-y-3">
                                                 {[...snacksData].sort((a, b) => b.value - a.value).map((item, index) => {
                                                     const total = snacksData.reduce((acc, curr) => acc + curr.value, 0);
                                                     return (
@@ -224,23 +224,23 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                                             animate={{ opacity: 1, x: 0 }}
                                                             transition={{ delay: index * 0.05 }}
                                                             key={item.name}
-                                                            className="bg-gray-900/40 rounded-xl p-3 flex items-center justify-between group hover:bg-gray-800 transition-all duration-300 border border-gray-800/50 hover:border-purple-500/30"
+                                                            className="bg-gray-900/40 rounded-xl p-2 md:p-3 flex items-center justify-between group hover:bg-gray-800 transition-all duration-300 border border-gray-800/50 hover:border-purple-500/30"
                                                         >
-                                                            <div className="flex items-center gap-4">
+                                                            <div className="flex items-center gap-3 md:gap-4">
                                                                 <div className={cn(
-                                                                    "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shadow-lg transition-transform group-hover:scale-110",
+                                                                    "w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-[10px] md:text-xs font-bold shadow-lg transition-transform group-hover:scale-110",
                                                                     index === 0 ? "bg-gradient-to-br from-yellow-400 to-yellow-600 text-white" :
                                                                         index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" :
                                                                             index === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" :
                                                                                 "bg-gray-800 text-gray-400"
                                                                 )}>
-                                                                    {index === 0 ? <Trophy className="w-4 h-4" /> :
-                                                                        index < 3 ? <Flame className="w-4 h-4" /> :
+                                                                    {index === 0 ? <Trophy className="w-3 h-3 md:w-4 md:h-4" /> :
+                                                                        index < 3 ? <Flame className="w-3 h-3 md:w-4 md:h-4" /> :
                                                                             <span>#{index + 1}</span>}
                                                                 </div>
                                                                 <div>
-                                                                    <p className="text-sm font-bold text-gray-200 group-hover:text-white transition-colors">{item.name}</p>
-                                                                    <div className="w-32 h-1.5 bg-gray-800 rounded-full mt-2 overflow-hidden">
+                                                                    <p className="text-xs md:text-sm font-bold text-gray-200 group-hover:text-white transition-colors">{item.name}</p>
+                                                                    <div className="w-24 md:w-32 h-1 md:h-1.5 bg-gray-800 rounded-full mt-1.5 md:mt-2 overflow-hidden">
                                                                         <div
                                                                             className="h-full rounded-full transition-all duration-1000 ease-out"
                                                                             style={{
@@ -252,8 +252,8 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                                                 </div>
                                                             </div>
                                                             <div className="text-right">
-                                                                <p className="text-lg font-black text-white">{item.value}</p>
-                                                                <p className="text-[10px] text-gray-500 font-medium uppercase">Units</p>
+                                                                <p className="text-sm md:text-lg font-black text-white">{item.value}</p>
+                                                                <p className="text-[8px] md:text-[10px] text-gray-500 font-medium uppercase">Units</p>
                                                             </div>
                                                         </motion.div>
                                                     )
@@ -275,18 +275,18 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                 className="h-full flex flex-col"
                             >
                                 <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <Clock className="w-5 h-5 text-blue-400" />
+                                    <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                                        <Clock className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
                                         Peak Traffic Hours
                                     </h3>
                                 </div>
                                 <div className="flex-1 w-full h-full min-h-0">
                                     {hourlyData.length > 0 ? (
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={hourlyData}>
+                                            <BarChart data={hourlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                                                <XAxis dataKey="hour" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-                                                <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+                                                <XAxis dataKey="hour" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
+                                                <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
                                                 <Tooltip content={<CustomTooltip />} />
                                                 <Bar dataKey="customers" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60}>
                                                     {hourlyData.map((entry, index) => (
@@ -303,7 +303,6 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                 </div>
             </div>
         </div>
-
     )
 }
 

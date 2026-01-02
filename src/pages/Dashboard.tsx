@@ -13,6 +13,7 @@ import { AnalyticsOverview } from '@/components/dashboard/AnalyticsOverview/Anal
 import { RecentActivity } from '@/components/dashboard/RecentActivity/RecentActivity'
 import { SessionsTable } from '@/components/dashboard/SessionsTable/SessionsTable'
 import { EntryDetailsDialog } from '@/components/dashboard/EntryDetailsDialog/EntryDetailsDialog'
+import { AnimatePresence, motion } from 'framer-motion'
 
 export default function GamingCafeDashboard() {
     const [customerName, setCustomerName] = useState('')
@@ -142,7 +143,7 @@ export default function GamingCafeDashboard() {
                     console.log(`Triggering SMS for ${entry.customerName}`);
                     try {
                         // 1. Send SMS
-                        const message = `Thank You ${entry.customerName || "Valued Customer"} for Visiting - Thunder Gaming Cafe\nWe hope to see you soon!\n[${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}]`
+                        const message = `Thank You ${entry.customerName || "Valued Customer"} for Visiting - SB Gaming Cafe\nWe hope to see you soon!\n[${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}]`
                         await sendSMS(entry.phoneNumber, message)
 
                         // 2. Update Firestore
@@ -437,7 +438,7 @@ export default function GamingCafeDashboard() {
             const url = window.URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Cafe_Sessions_${new Date().toISOString().split('T')[0]}.xlsx`);
+            link.setAttribute('download', `SB_Gaming_Sessions_${new Date().toISOString().split('T')[0]}.xlsx`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -458,16 +459,15 @@ export default function GamingCafeDashboard() {
     }
 
     return (
-        <div className="min-h-screen  bg-black text-white">
-            {/* Background Pattern */}
-            <div className="fixed inset-0 opacity-5">
-                <div className="absolute inset-0" style={{
-                    backgroundImage: `radial-gradient(circle at 25% 25%, #3b82f6 0%, transparent 50%), 
-                           radial-gradient(circle at 75% 75%, #eab308 0%, transparent 50%)`
-                }}></div>
+        <div className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-blue-500/30">
+            {/* Premium Background with Depth */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-black to-black" />
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] opacity-30 animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-[100px] opacity-30 animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
             </div>
 
-            <div className="relative z-10">
+            <div className="relative z-10 flex flex-col min-h-screen">
                 <DashboardHeader
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
@@ -477,53 +477,79 @@ export default function GamingCafeDashboard() {
                     totalHours={totalHours}
                 />
 
-                {/* Main Content */}
-                <div className="max-w-7xl mx-auto px-6 py-8">
-                    {activeTab === 'overview' ? (
-                        <AnalyticsOverview
-                            snacksData={snacksData}
-                            revenueData={revenueData}
-                            hourlyData={hourlyData}
-                            overallStats={{
-                                totalRevenue,
-                                totalCustomers
-                            }}
-                        />
-                    ) : activeTab === 'dashboard' ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <EntryForm
-                                customerName={customerName}
-                                setCustomerName={setCustomerName}
-                                phoneNumber={phoneNumber}
-                                setPhoneNumber={setPhoneNumber}
-                                numberOfPeople={numberOfPeople}
-                                setNumberOfPeople={setNumberOfPeople}
-                                duration={duration}
-                                setDuration={setDuration}
-                                selectedSnacks={selectedSnacks}
-                                handleSnackChange={handleSnackChange}
-                                handleProceed={handleProceed}
-                                isAnimating={isAnimating}
-                                focusedField={focusedField}
-                                setFocusedField={setFocusedField}
-                                calculateSubTotal={calculateSubTotal}
-                            />
+                {/* Main Content with AnimatePresence */}
+                <div className="flex-1 max-w-7xl mx-auto px-4 py-4 md:px-6 md:py-8 w-full">
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'overview' ? (
+                            <motion.div
+                                key="overview"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <AnalyticsOverview
+                                    snacksData={snacksData}
+                                    revenueData={revenueData}
+                                    hourlyData={hourlyData}
+                                    overallStats={{
+                                        totalRevenue,
+                                        totalCustomers
+                                    }}
+                                />
+                            </motion.div>
+                        ) : activeTab === 'dashboard' ? (
+                            <motion.div
+                                key="dashboard"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 pb-20 md:pb-0"
+                            >
+                                <EntryForm
+                                    customerName={customerName}
+                                    setCustomerName={setCustomerName}
+                                    phoneNumber={phoneNumber}
+                                    setPhoneNumber={setPhoneNumber}
+                                    numberOfPeople={numberOfPeople}
+                                    setNumberOfPeople={setNumberOfPeople}
+                                    duration={duration}
+                                    setDuration={setDuration}
+                                    selectedSnacks={selectedSnacks}
+                                    handleSnackChange={handleSnackChange}
+                                    handleProceed={handleProceed}
+                                    isAnimating={isAnimating}
+                                    focusedField={focusedField}
+                                    setFocusedField={setFocusedField}
+                                    calculateSubTotal={calculateSubTotal}
+                                />
 
-                            <RecentActivity
-                                recentEntries={recentEntries}
-                                activityTab={activityTab}
-                                setActivityTab={setActivityTab}
-                                currentTime={currentTime}
-                                openEntryDetails={openEntryDetails}
-                            />
-                        </div>
-                    ) : (
-                        <SessionsTable
-                            recentEntries={recentEntries}
-                            handleDownloadExcel={handleDownloadExcel}
-                            openEntryDetails={openEntryDetails}
-                        />
-                    )}
+                                <RecentActivity
+                                    recentEntries={recentEntries}
+                                    activityTab={activityTab}
+                                    setActivityTab={setActivityTab}
+                                    currentTime={currentTime}
+                                    openEntryDetails={openEntryDetails}
+                                />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="table"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className="pb-8"
+                            >
+                                <SessionsTable
+                                    recentEntries={recentEntries}
+                                    handleDownloadExcel={handleDownloadExcel}
+                                    openEntryDetails={openEntryDetails}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
@@ -533,6 +559,7 @@ export default function GamingCafeDashboard() {
                 isOpen={selectedEntry !== null}
                 onClose={closeEntryDetails}
                 onSave={saveEntryChanges}
+                readOnly={activeTab === 'table'}
             />
         </div>
     )
