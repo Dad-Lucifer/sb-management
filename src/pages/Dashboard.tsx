@@ -20,6 +20,8 @@ export default function GamingCafeDashboard() {
     const [phoneNumber, setPhoneNumber] = useState('')
     const [numberOfPeople, setNumberOfPeople] = useState('1')
     const [duration, setDuration] = useState('')
+    const [age, setAge] = useState('')
+    const [paymentMode, setPaymentMode] = useState<'online' | 'offline'>('offline')
     // New State for Structured Snacks
     const [selectedSnacks, setSelectedSnacks] = useState<Record<string, number>>({})
 
@@ -250,7 +252,9 @@ export default function GamingCafeDashboard() {
                 subTotal: calculateSubTotal(),
                 timestamp: Timestamp.now(),
                 isRenewed: false,
-                smsSent: false
+                smsSent: false,
+                age: parseInt(age) || 0,
+                paymentMode: paymentMode
             })
 
             setTimeout(() => {
@@ -258,6 +262,8 @@ export default function GamingCafeDashboard() {
                 setPhoneNumber('')
                 setNumberOfPeople('1')
                 setDuration('')
+                setAge('')
+                setPaymentMode('offline')
                 setSelectedSnacks({})
                 setIsAnimating(false)
                 toast({
@@ -327,11 +333,12 @@ export default function GamingCafeDashboard() {
     }
 
     // Data for charts
-    const getSnacksDistribution = () => {
+    // Data for charts
+    const getSnacksDistribution = (entries: CustomerEntry[]) => {
         const distribution: { [key: string]: number } = {}
-        recentEntries.forEach(entry => {
+        entries.forEach(entry => {
             if (entry.snacks.length === 0) {
-                distribution['No Snacks'] = (distribution['No Snacks'] || 0) + 1
+                // distribution['No Snacks'] = (distribution['No Snacks'] || 0) + 1
             } else {
                 entry.snacks.forEach(snack => {
                     const snackName = snack.name
@@ -372,14 +379,14 @@ export default function GamingCafeDashboard() {
         return last7Days
     }
 
-    const getHourlyDistribution = () => {
+    const getHourlyDistribution = (entries: CustomerEntry[]) => {
         const hourlyData: { [key: string]: { customers: number; revenue: number } } = {}
 
         for (let i = 0; i < 24; i++) {
             hourlyData[i] = { customers: 0, revenue: 0 }
         }
 
-        recentEntries.forEach(entry => {
+        entries.forEach(entry => {
             const hour = new Date(entry.timestamp).getHours()
             hourlyData[hour].customers += 1
             hourlyData[hour].revenue += entry.subTotal
@@ -389,7 +396,7 @@ export default function GamingCafeDashboard() {
             hour: `${hour}:00`,
             customers: data.customers,
             revenue: data.revenue
-        })).filter(item => item.customers > 0)
+        })).filter(item => item.revenue > 0 || item.customers > 0)
     }
 
     // Filter for today's entries for the stats bar
@@ -401,22 +408,39 @@ export default function GamingCafeDashboard() {
     })
 
     // Use lifetime data (recentEntries) for Table View and Overview, otherwise use today's data
-    const statsEntries = (activeTab === 'table' || activeTab === 'overview') ? recentEntries : todayEntries
+    // Use lifetime data (recentEntries) for Table View, otherwise use today's data (Dashboard & Analytics)
+    const statsEntries = (activeTab === 'table') ? recentEntries : todayEntries
 
     const totalRevenue = statsEntries.reduce((sum, entry) => sum + entry.subTotal, 0)
     const totalCustomers = statsEntries.length
     const avgSessionValue = totalCustomers > 0 ? totalRevenue / totalCustomers : 0
     const totalHours = statsEntries.reduce((sum, entry) => sum + entry.duration, 0)
 
-    const snacksData = getSnacksDistribution()
-    const revenueData = getRevenueData()
-    const hourlyData = getHourlyDistribution()
+    const totalCash = statsEntries
+        .filter(e => e.paymentMode === 'offline' || !e.paymentMode)
+        .reduce((sum, entry) => sum + entry.subTotal, 0)
+
+    const totalOnline = statsEntries
+        .filter(e => e.paymentMode === 'online')
+        .reduce((sum, entry) => sum + entry.subTotal, 0)
+
+
+    const snacksData = getSnacksDistribution(todayEntries)
+    // Analytics: Map hourly data to 'date' key for the AreaChart (showing Today's Hourly Revenue)
+    const hourlyData = getHourlyDistribution(todayEntries)
+    const revenueData = hourlyData.map(d => ({
+        date: d.hour,
+        revenue: d.revenue,
+        customers: d.customers
+    }))
 
     const handleDownloadExcel = () => {
         try {
             const data = recentEntries.map(entry => ({
                 'Customer Name': entry.customerName,
                 'Phone Number': entry.phoneNumber,
+                'Age': entry.age || '-',
+                'Payment Mode': entry.paymentMode || 'cash',
                 'Number of People': entry.numberOfPeople || 1,
                 'Duration (Hours)': entry.duration,
                 'Snacks': entry.snacks.map(s => `${s.name} (x${s.quantity})`).join(', '),
@@ -494,7 +518,9 @@ export default function GamingCafeDashboard() {
                                     hourlyData={hourlyData}
                                     overallStats={{
                                         totalRevenue,
-                                        totalCustomers
+                                        totalCustomers,
+                                        totalCash,
+                                        totalOnline
                                     }}
                                 />
                             </motion.div>
@@ -523,6 +549,10 @@ export default function GamingCafeDashboard() {
                                     focusedField={focusedField}
                                     setFocusedField={setFocusedField}
                                     calculateSubTotal={calculateSubTotal}
+                                    age={age}
+                                    setAge={setAge}
+                                    paymentMode={paymentMode}
+                                    setPaymentMode={setPaymentMode}
                                 />
 
                                 <RecentActivity

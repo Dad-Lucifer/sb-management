@@ -18,4 +18,6 @@ export interface CustomerEntry {
     timestamp: Date
     isRenewed?: boolean
     smsSent?: boolean
+    age?: number
+    paymentMode?: 'online' | 'offline'
 }

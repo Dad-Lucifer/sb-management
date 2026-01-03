@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, ChevronDown, Plus, Minus } from 'lucide-react'
+import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, ChevronDown, Plus, Minus, CreditCard, Banknote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,6 +23,10 @@ export interface EntryFormProps {
     focusedField: string | null;
     setFocusedField: (val: string | null) => void;
     calculateSubTotal: () => number;
+    age: string;
+    setAge: (val: string) => void;
+    paymentMode: 'online' | 'offline';
+    setPaymentMode: (val: 'online' | 'offline') => void;
 }
 
 export function EntryForm({
@@ -40,7 +44,11 @@ export function EntryForm({
     isAnimating,
     focusedField,
     setFocusedField,
-    calculateSubTotal
+    calculateSubTotal,
+    age,
+    setAge,
+    paymentMode,
+    setPaymentMode
 }: EntryFormProps) {
     return (
         <div className="space-y-6">
@@ -61,7 +69,7 @@ export function EntryForm({
                         className="h-full bg-gradient-to-r from-blue-500 to-yellow-500"
                         initial={{ width: "0%" }}
                         animate={{
-                            width: `${((customerName ? 20 : 0) + (phoneNumber ? 20 : 0) + (numberOfPeople ? 20 : 0) + (duration ? 20 : 0) + (Object.keys(selectedSnacks).length > 0 ? 20 : 0))}%`
+                            width: `${((customerName ? 15 : 0) + (phoneNumber ? 15 : 0) + (numberOfPeople ? 10 : 0) + (duration ? 10 : 0) + (age ? 10 : 0) + (Object.keys(selectedSnacks).length > 0 ? 20 : 0) + 20)}%`
                         }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
@@ -150,6 +158,57 @@ export function EntryForm({
                             <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'numberOfPeople' ? 'text-blue-500' : 'text-gray-600'}`}>
                                 <User className="w-4 h-4" />
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* AGE & PAYMENT */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="age" className="text-gray-400 text-sm font-medium flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-blue-500" />
+                            Age
+                        </Label>
+                        <div className="relative group">
+                            <Input
+                                id="age"
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={age}
+                                onChange={(e) => setAge(e.target.value)}
+                                onFocus={() => setFocusedField('age')}
+                                onBlur={() => setFocusedField(null)}
+                                placeholder="Age"
+                                className={`h-12 bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 rounded-lg pl-10 transition-all duration-300 ${focusedField === 'age' ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'group-hover:border-gray-700'
+                                    } focus:border-blue-500 focus:ring-0`}
+                            />
+                            <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'age' ? 'text-blue-500' : 'text-gray-600'}`}>
+                                <User className="w-4 h-4" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-gray-400 text-sm font-medium flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-blue-500" />
+                            Method
+                        </Label>
+                        <div className="flex bg-gray-900/50 p-1 rounded-lg border border-gray-800 h-12">
+                            <button
+                                onClick={() => setPaymentMode('online')}
+                                className={`flex-1 flex items-center justify-center gap-2 rounded-md text-xs font-semibold transition-all duration-200 ${paymentMode === 'online' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                            >
+                                <CreditCard className="w-3.5 h-3.5" />
+                                Online
+                            </button>
+                            <button
+                                onClick={() => setPaymentMode('offline')}
+                                className={`flex-1 flex items-center justify-center gap-2 rounded-md text-xs font-semibold transition-all duration-200 ${paymentMode === 'offline' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                            >
+                                <Banknote className="w-3.5 h-3.5" />
+                                Cash
+                            </button>
                         </div>
                     </div>
                 </div>

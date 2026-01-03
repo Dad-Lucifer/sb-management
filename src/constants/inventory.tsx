@@ -1,6 +1,6 @@
-import { CupSoda, Cookie, UtensilsCrossed, Package } from 'lucide-react'
+import { CupSoda, Cookie } from 'lucide-react'
 
-export const PER_PERSON_RATE = 60
+export const PER_PERSON_RATE = 50
 
 export interface SnackItem {
     id: string;
@@ -20,64 +20,23 @@ export interface SnackCategory {
 }
 
 export const SNACK_INVENTORY: Record<string, SnackCategory> = {
-    drinks: {
-        label: "Thirst Quenchers",
-        icon: CupSoda,
-        gradient: "from-blue-500/20 to-blue-600/5",
-        textColor: "text-blue-400",
-        items: [
-            { id: 'coke', name: 'Coca Cola', price: 50, popular: true },
-            { id: 'pepsi', name: 'Pepsi', price: 50 },
-            { id: 'redbull', name: 'Red Bull', price: 120, popular: true, description: "Energy Boost" },
-            { id: 'water', name: 'Mineral Water', price: 20 },
-            { id: 'coffee', name: 'Hot Coffee', price: 40 },
-        ]
-    },
     munchies: {
-        label: "Crunchy Loot",
+        label: "Munchies",
         icon: Cookie,
         gradient: "from-yellow-500/20 to-orange-600/5",
         textColor: "text-yellow-400",
         items: [
-            { id: 'lays_classic', name: 'Lays Classic', shortName: "Lays Classic", price: 20 },
-            { id: 'lays_magic', name: 'Lays Magic Masala', shortName: "Lays Magic", price: 20, popular: true },
-            { id: 'doritos', name: 'Doritos Nacho', price: 40 },
-            { id: 'pringles', name: 'Pringles', price: 100 },
+            { id: 'chips_15', name: 'Chips', price: 15 },
+            { id: 'big_packet', name: 'big packet', price: 50 },
         ]
     },
-    food: {
-        label: "Heavy Arsenal",
-        icon: UtensilsCrossed,
-        gradient: "from-red-500/20 to-red-600/5",
-        textColor: "text-red-400",
+    drinks: {
+        label: "Drinks",
+        icon: CupSoda,
+        gradient: "from-blue-500/20 to-blue-600/5",
+        textColor: "text-blue-400",
         items: [
-            { id: 'maggi', name: 'Masala Maggi', price: 50, popular: true },
-            { id: 'sandwich_veg', name: 'Veg Grilled Sandwich', shortName: "Veg Sandwich", price: 80 },
-            { id: 'sandwich_chicken', name: 'Chicken Sandwich', shortName: "Chicken Sandwich", price: 120, popular: true },
-            { id: 'nuggets', name: 'Chicken Nuggets (6pc)', shortName: "Nuggets (6pc)", price: 100 },
-        ]
-    },
-    combo: {
-        label: "Battle Bundles",
-        icon: Package,
-        gradient: "from-purple-500/20 to-pink-600/5",
-        textColor: "text-purple-400",
-        items: [
-            {
-                id: 'combo_1',
-                name: 'Gaming Duo (2 Coke + 1 Lays)',
-                shortName: "Gaming Duo",
-                description: "2 Coke + 1 Lays",
-                price: 110,
-                popular: true
-            },
-            {
-                id: 'combo_2',
-                name: 'Full Squad (4 Redbull + 2 Lays)',
-                shortName: "Full Squad",
-                description: "4 Redbull + 2 Lays",
-                price: 500
-            },
+            { id: 'water', name: 'Water', price: 10 },
         ]
     }
 }

@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     TrendingUp, Users, Clock, PieChart as PieChartIcon,
-    BarChart2, Zap, DollarSign, Activity, Trophy, Flame
+    BarChart2, Zap, DollarSign, Activity, Trophy, Flame,
+    Banknote, CreditCard
 } from 'lucide-react'
 import {
     PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar,
@@ -18,6 +19,8 @@ export interface AnalyticsOverviewProps {
     overallStats: {
         totalRevenue: number;
         totalCustomers: number;
+        totalCash: number;
+        totalOnline: number;
     };
 }
 
@@ -84,7 +87,7 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 <StatCard
                     label="Total Revenue"
                     value={`₹${overallStats.totalRevenue.toLocaleString()}`}
@@ -92,6 +95,22 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                     color="text-green-400"
                     gradient="from-green-500/20 to-green-900/5"
                     borderColor="border-green-500/20"
+                />
+                <StatCard
+                    label="Cash Payment"
+                    value={`₹${overallStats.totalCash.toLocaleString()}`}
+                    icon={Banknote}
+                    color="text-emerald-400"
+                    gradient="from-emerald-500/20 to-emerald-900/5"
+                    borderColor="border-emerald-500/20"
+                />
+                <StatCard
+                    label="Online Payment"
+                    value={`₹${overallStats.totalOnline.toLocaleString()}`}
+                    icon={CreditCard}
+                    color="text-cyan-400"
+                    gradient="from-cyan-500/20 to-cyan-900/5"
+                    borderColor="border-cyan-500/20"
                 />
                 <StatCard
                     label="Total Guests"

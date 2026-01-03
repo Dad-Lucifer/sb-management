@@ -1,6 +1,7 @@
-import { Download } from 'lucide-react'
+import { Download, CreditCard, Banknote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CustomerEntry } from '@/types/dashboard'
+import { cn } from '@/lib/utils'
 
 export interface SessionsTableProps {
     recentEntries: CustomerEntry[];
@@ -47,8 +48,10 @@ export function SessionsTable({
                                     <tr>
                                         <th className="text-left p-4 font-semibold">Customer</th>
                                         <th className="text-left p-4 font-semibold">Phone</th>
+                                        <th className="text-center p-4 font-semibold">Age</th>
                                         <th className="text-center p-4 font-semibold">People</th>
                                         <th className="text-center p-4 font-semibold">Duration</th>
+                                        <th className="text-center p-4 font-semibold">Method</th>
                                         <th className="text-left p-4 font-semibold">Snacks</th>
                                         <th className="text-right p-4 font-semibold">Total</th>
                                         <th className="text-right p-4 font-semibold">Time</th>
@@ -66,6 +69,13 @@ export function SessionsTable({
                                             </td>
                                             <td className="p-4 text-gray-400 font-mono text-sm">{entry.phoneNumber}</td>
                                             <td className="p-4 text-center text-gray-300">
+                                                {entry.age ? (
+                                                    <span className="text-xs font-semibold bg-gray-800 px-2 py-1 rounded text-gray-400">
+                                                        {entry.age}
+                                                    </span>
+                                                ) : <span className="text-gray-600">-</span>}
+                                            </td>
+                                            <td className="p-4 text-center text-gray-300">
                                                 <span className="inline-flex items-center justify-center bg-gray-800 rounded-md px-2 py-1 text-xs">
                                                     {entry.numberOfPeople || 1}
                                                 </span>
@@ -74,6 +84,17 @@ export function SessionsTable({
                                                 <span className="inline-flex items-center justify-center bg-gray-800 rounded-md px-2 py-1 text-xs">
                                                     {entry.duration}h
                                                 </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <div className={cn(
+                                                    "inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold uppercase",
+                                                    entry.paymentMode === 'online'
+                                                        ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                                        : "bg-green-500/10 text-green-400 border border-green-500/20"
+                                                )}>
+                                                    {entry.paymentMode === 'online' ? <CreditCard className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
+                                                    {entry.paymentMode || 'cash'}
+                                                </div>
                                             </td>
                                             <td className="p-4">
                                                 <div className="text-sm text-gray-400 max-w-[200px] truncate">
@@ -117,14 +138,27 @@ export function SessionsTable({
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2 mb-3">
+                                <div className="grid grid-cols-4 gap-2 mb-3">
                                     <div className="bg-gray-800/50 rounded-lg p-2 text-center border border-gray-800">
-                                        <div className="text-[10px] text-gray-500 uppercase">Duration</div>
+                                        <div className="text-[10px] text-gray-500 uppercase">Dur.</div>
                                         <div className="text-sm font-semibold text-gray-300">{entry.duration}h</div>
                                     </div>
                                     <div className="bg-gray-800/50 rounded-lg p-2 text-center border border-gray-800">
-                                        <div className="text-[10px] text-gray-500 uppercase">People</div>
+                                        <div className="text-[10px] text-gray-500 uppercase">Ppl</div>
                                         <div className="text-sm font-semibold text-gray-300">{entry.numberOfPeople || 1}</div>
+                                    </div>
+                                    <div className="bg-gray-800/50 rounded-lg p-2 text-center border border-gray-800">
+                                        <div className="text-[10px] text-gray-500 uppercase">Age</div>
+                                        <div className="text-sm font-semibold text-gray-300">{entry.age || '-'}</div>
+                                    </div>
+                                    <div className="bg-gray-800/50 rounded-lg p-2 flex flex-col items-center justify-center border border-gray-800">
+                                        <div className="text-[10px] text-gray-500 uppercase">Paid</div>
+                                        <div className="mt-1">
+                                            {entry.paymentMode === 'online'
+                                                ? <CreditCard className="w-4 h-4 text-blue-400" />
+                                                : <Banknote className="w-4 h-4 text-green-400" />
+                                            }
+                                        </div>
                                     </div>
                                 </div>
 
