@@ -349,35 +349,7 @@ export default function GamingCafeDashboard() {
         return Object.entries(distribution).map(([name, value]) => ({ name, value }))
     }
 
-    const getRevenueData = () => {
-        const last7Days = []
-        const today = new Date()
 
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today)
-            date.setDate(date.getDate() - i)
-            date.setHours(0, 0, 0, 0)
-
-            const nextDate = new Date(date)
-            nextDate.setDate(nextDate.getDate() + 1)
-
-            const dayEntries = recentEntries.filter(entry => {
-                const entryDate = new Date(entry.timestamp)
-                return entryDate >= date && entryDate < nextDate
-            })
-
-            const revenue = dayEntries.reduce((sum, entry) => sum + entry.subTotal, 0)
-            const customers = dayEntries.length
-
-            last7Days.push({
-                date: date.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' }),
-                revenue,
-                customers
-            })
-        }
-
-        return last7Days
-    }
 
     const getHourlyDistribution = (entries: CustomerEntry[]) => {
         const hourlyData: { [key: string]: { customers: number; revenue: number } } = {}

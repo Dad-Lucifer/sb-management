@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     X, User, Phone, Clock, Plus, Minus, ShoppingCart,
-    Zap, TrendingUp, Crown, Check, Coffee, Utensils,
-    Gamepad2, MoreHorizontal, CreditCard, Banknote
+    Crown, Check, Coffee, CreditCard, Banknote
 } from 'lucide-react'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
 import { SNACK_INVENTORY, ALL_SNACKS_MAP, PER_PERSON_RATE } from '@/constants/inventory'
