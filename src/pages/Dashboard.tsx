@@ -4,7 +4,7 @@ import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, Timesta
 import { useToast } from '@/hooks/use-toast'
 import { checkAndArchiveOldData } from '@/lib/archiver'
 import * as XLSX from 'xlsx'
-import { sendSMS } from '@/lib/sms'
+
 import { ALL_SNACKS_MAP, PER_PERSON_RATE } from '@/constants/inventory'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
 import { DashboardHeader } from '@/components/dashboard/Header/DashboardHeader'
@@ -118,69 +118,7 @@ export default function GamingCafeDashboard() {
         runArchival();
     }, [])
 
-    // Check for expired sessions and send SMS
-    useEffect(() => {
-        const checkExpiry = async () => {
-            // console.log("Running SMS check (Interval)...", new Date().toLocaleTimeString());
-            const now = new Date().getTime()
 
-            recentEntriesRef.current.forEach(async (entry) => {
-                const startTime = new Date(entry.timestamp).getTime()
-                const durationMs = entry.duration * 60 * 60 * 1000
-                const endTime = startTime + durationMs
-
-                // If session is expired and SMS not sent yet
-                if (now > endTime && !entry.smsSent) {
-                    const cleanNumber = entry.phoneNumber.replace(/\D/g, '').slice(-10);
-
-                    // Skip invalid numbers (e.g. test data)
-                    if (cleanNumber.length !== 10) {
-                        console.log(`Skipping SMS for invalid number: ${entry.phoneNumber}`);
-                        // Mark as sent to stop checking this entry
-                        const entryRef = doc(db, "entries", entry.id)
-                        await updateDoc(entryRef, { smsSent: true })
-                        return;
-                    }
-
-                    console.log(`Triggering SMS for ${entry.customerName}`);
-                    try {
-                        // 1. Send SMS
-                        const message = `Thank You ${entry.customerName || "Valued Customer"} for Visiting - SB Gaming Cafe\nWe hope to see you soon!\n[${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}]`
-                        await sendSMS(entry.phoneNumber, message)
-
-                        // 2. Update Firestore
-                        const entryRef = doc(db, "entries", entry.id)
-                        await updateDoc(entryRef, {
-                            smsSent: true
-                        })
-
-                        toast({
-                            title: "SMS Sent",
-                            description: `Thank you message sent to ${entry.customerName}`,
-                            className: "bg-blue-500 border-blue-600 text-white"
-                        })
-
-                    } catch (error: any) {
-                        console.error("Failed to send SMS:", error)
-                        // Don't show toast for every failure to avoid spamming if API is down
-                        if (error.message.includes("Invalid phone number")) {
-                            // Mark as sent if it's an invalid number error to stop retrying
-                            const entryRef = doc(db, "entries", entry.id)
-                            await updateDoc(entryRef, { smsSent: true })
-                        }
-                    }
-                }
-            })
-        }
-
-        // Run check every 10 seconds
-        const interval = setInterval(checkExpiry, 10000)
-
-        // Run immediately on mount too
-        checkExpiry();
-
-        return () => clearInterval(interval)
-    }, []) // Empty dependency array ensures this interval persists correctly
 
     const calculateSubTotal = () => {
         const durationNum = parseFloat(duration) || 0
@@ -252,7 +190,6 @@ export default function GamingCafeDashboard() {
                 subTotal: calculateSubTotal(),
                 timestamp: Timestamp.now(),
                 isRenewed: false,
-                smsSent: false,
                 age: parseInt(age) || 0,
                 paymentMode: paymentMode
             })

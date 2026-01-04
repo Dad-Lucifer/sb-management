@@ -17,7 +17,7 @@ export interface CustomerEntry {
     subTotal: number
     timestamp: Date
     isRenewed?: boolean
-    smsSent?: boolean
+
     age?: number
     paymentMode?: 'online' | 'offline'
 }
