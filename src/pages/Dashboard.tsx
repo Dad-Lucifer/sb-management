@@ -316,9 +316,17 @@ export default function GamingCafeDashboard() {
         return new Date(entry.timestamp) >= startOfToday
     })
 
-    // Use lifetime data (recentEntries) for Table View and Overview, otherwise use today's data
+    // Helper to check if a session is completed
+    const isSessionCompleted = (entry: CustomerEntry) => {
+        const startTime = new Date(entry.timestamp).getTime()
+        const durationMs = entry.duration * 60 * 60 * 1000
+        const endTime = startTime + durationMs
+        return endTime <= currentTime.getTime()
+    }
+
     // Use lifetime data (recentEntries) for Table View, otherwise use today's data (Dashboard & Analytics)
-    const statsEntries = (activeTab === 'table') ? recentEntries : todayEntries
+    // AND filter for only completed sessions for stats calculations
+    const statsEntries = ((activeTab === 'table') ? recentEntries : todayEntries).filter(isSessionCompleted)
 
     const totalRevenue = statsEntries.reduce((sum, entry) => sum + entry.subTotal, 0)
     const totalCustomers = statsEntries.length
@@ -333,10 +341,11 @@ export default function GamingCafeDashboard() {
         .filter(e => e.paymentMode === 'online')
         .reduce((sum, entry) => sum + entry.subTotal, 0)
 
+    const completedTodayEntries = todayEntries.filter(isSessionCompleted)
 
-    const snacksData = getSnacksDistribution(todayEntries)
+    const snacksData = getSnacksDistribution(completedTodayEntries)
     // Analytics: Map hourly data to 'date' key for the AreaChart (showing Today's Hourly Revenue)
-    const hourlyData = getHourlyDistribution(todayEntries)
+    const hourlyData = getHourlyDistribution(completedTodayEntries)
     const revenueData = hourlyData.map(d => ({
         date: d.hour,
         revenue: d.revenue,
