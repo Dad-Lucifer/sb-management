@@ -17,18 +17,28 @@ The SB Gaming Zone management system now includes automatic SMS notifications th
 - **Persistent Tracking**: SMS status is saved in Firestore, so even after page refresh, duplicate SMS won't be sent
 
 ## API Configuration
-The system uses **Fast2SMS API**. The API key is securely stored in the `.env` file:
+The system uses **Fast2SMS API** through a **backend proxy** to avoid CORS issues.
 
-### Setup Instructions
-1. Copy `.env.example` to `.env` (if not already done)
-2. Add your Fast2SMS API key to the `.env` file:
-   ```
-   VITE_FAST2SMS_API_KEY=your_api_key_here
-   ```
-3. The `.env` file is already in `.gitignore` to prevent accidental commits of sensitive data
-4. Restart the development server after adding the API key
+### Architecture
+- **Frontend** (`src/lib/sms.ts`) → Calls `/api/send-sms`
+- **Backend** (`api/send-sms.ts`) → Calls Fast2SMS API
+- This architecture bypasses browser CORS restrictions
 
-**Note**: Never commit the `.env` file to version control. Always use `.env.example` as a template.
+### Setup Instructions for Vercel
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
+3. Add the following environment variable:
+   - **Name**: `FAST2SMS_API_KEY`
+   - **Value**: Your Fast2SMS API key (without `VITE_` prefix)
+4. Redeploy your application
+
+### Local Development
+For local development, add to your `.env` file:
+```
+FAST2SMS_API_KEY=your_api_key_here
+```
+
+**Note**: The API key is now stored server-side only for security.
 
 ## How It Works
 1. The system checks for completed sessions every 30 seconds

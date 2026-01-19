@@ -1,10 +1,8 @@
 /**
- * SMS Service using Fast2SMS API
+ * SMS Service using Fast2SMS API via backend proxy
  * Sends SMS notifications to customers
  */
 
-const FAST2SMS_API_KEY = import.meta.env.VITE_FAST2SMS_API_KEY;
-const FAST2SMS_API_URL = 'https://www.fast2sms.com/dev/bulkV2';
 
 export interface SMSParams {
     phoneNumber: string;
@@ -72,45 +70,28 @@ function getRandomMessage(customerName: string, sessionDuration?: number): strin
  */
 export async function sendSessionEndSMS({ phoneNumber, customerName, sessionDuration }: SMSParams): Promise<boolean> {
     try {
-        // Check if API key is configured
-        if (!FAST2SMS_API_KEY) {
-            console.error('Fast2SMS API key not configured. Please add VITE_FAST2SMS_API_KEY to .env file');
-            return false;
-        }
-
-        // Remove +91 prefix and any spaces from phone number
-        const cleanPhone = phoneNumber.replace(/\+91\s?/g, '').trim();
-
-        // Validate phone number (should be 10 digits)
-        if (!/^\d{10}$/.test(cleanPhone)) {
-            console.error('Invalid phone number format:', phoneNumber);
-            return false;
-        }
-
         // Get a random personalized message
         const message = getRandomMessage(customerName, sessionDuration);
 
         console.log(`Sending SMS to ${customerName}: "${message}"`);
 
-        const response = await fetch(FAST2SMS_API_URL, {
+        // Call our backend API endpoint instead of Fast2SMS directly
+        // This avoids CORS issues
+        const response = await fetch('/api/send-sms', {
             method: 'POST',
             headers: {
-                'authorization': FAST2SMS_API_KEY,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                route: 'q',
-                message: message,
-                language: 'english',
-                flash: 0,
-                numbers: cleanPhone,
+                phoneNumber,
+                message,
             }),
         });
 
         const data = await response.json();
 
-        if (data.return === true) {
-            console.log('SMS sent successfully to:', cleanPhone);
+        if (response.ok && data.success) {
+            console.log('SMS sent successfully to:', phoneNumber);
             return true;
         } else {
             console.error('SMS sending failed:', data);
