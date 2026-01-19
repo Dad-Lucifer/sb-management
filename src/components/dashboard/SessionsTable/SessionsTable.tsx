@@ -1,4 +1,4 @@
-import { Download, CreditCard, Banknote, Calendar } from 'lucide-react'
+import { Download, CreditCard, Banknote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CustomerEntry } from '@/types/dashboard'
 import { cn } from '@/lib/utils'

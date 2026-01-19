@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Clock, Coffee, User, Trophy, Zap, Ghost,
-    ChevronRight, History, Activity, AlertCircle, Crown, Trash2, Pause, Play
+    Clock, Coffee, Trophy, Zap, Ghost,
+    History, Activity, AlertCircle, Crown, Trash2, Pause, Play
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CustomerEntry } from '@/types/dashboard'
