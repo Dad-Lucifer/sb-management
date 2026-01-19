@@ -111,15 +111,15 @@ export function EntryDetailsDialog({
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Decorative Glow */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-32 bg-blue-500/20 blur-[60px] rounded-full pointer-events-none" />
-                        <div className="absolute bottom-0 right-0 w-2/3 h-32 bg-purple-500/10 blur-[60px] rounded-full pointer-events-none" />
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-32 bg-red-600/20 blur-[60px] rounded-full pointer-events-none" />
+                        <div className="absolute bottom-0 right-0 w-2/3 h-32 bg-orange-600/10 blur-[60px] rounded-full pointer-events-none" />
 
                         {/* Header Section */}
                         <div className="relative z-10 shrink-0 pt-6 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-4">
                                     {/* Avatar */}
-                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 p-[2px] shadow-lg shadow-blue-500/20">
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 p-[2px] shadow-lg shadow-red-500/20">
                                         <div className="w-full h-full rounded-xl bg-gray-900 flex items-center justify-center">
                                             <span className="text-2xl font-black text-white">{entry.customerName.charAt(0)}</span>
                                         </div>
@@ -136,7 +136,7 @@ export function EntryDetailsDialog({
                                         <div className="flex items-center gap-2 mt-2">
                                             {entry.age && entry.age > 0 && (
                                                 <div className="text-xs font-medium text-gray-400 bg-gray-800/80 px-2 py-0.5 rounded border border-gray-700 flex items-center gap-1.5">
-                                                    <User className="w-3 h-3 text-blue-400" />
+                                                    <User className="w-3 h-3 text-red-500" />
                                                     {entry.age}
                                                 </div>
                                             )}
@@ -144,7 +144,7 @@ export function EntryDetailsDialog({
                                                 <div className={cn(
                                                     "text-xs font-bold uppercase px-2 py-0.5 rounded border flex items-center gap-1.5",
                                                     entry.paymentMode === 'online'
-                                                        ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                                                        ? "bg-red-500/10 text-red-500 border-red-500/30"
                                                         : "bg-green-500/10 text-green-400 border-green-500/30"
                                                 )}>
                                                     {entry.paymentMode === 'online' ? <CreditCard className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
@@ -180,7 +180,7 @@ export function EntryDetailsDialog({
                                 >
                                     <ShoppingCart className="w-4 h-4" />
                                     Supply
-                                    {totalItems > 0 && <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />}
+                                    {totalItems > 0 && <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />}
                                 </button>
                             </div>
                         </div>
@@ -203,7 +203,7 @@ export function EntryDetailsDialog({
                                                     <div className="flex-1 h-14 bg-black/50 rounded-xl border border-gray-800 flex items-center justify-center">
                                                         <Input type="number" step="0.5" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} className="w-full h-full bg-transparent border-none text-center text-2xl font-black text-white focus:ring-0" />
                                                     </div>
-                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditDuration((parseFloat(editDuration) + 0.5).toString())} className="h-12 w-12 rounded-xl bg-blue-600 border border-blue-500 text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20 flex items-center justify-center">
+                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditDuration((parseFloat(editDuration) + 0.5).toString())} className="h-12 w-12 rounded-xl bg-red-600 border border-red-500 text-white hover:bg-red-500 shadow-lg shadow-red-600/20 flex items-center justify-center">
                                                         <Plus className="w-5 h-5" />
                                                     </motion.button>
                                                 </div>
@@ -255,7 +255,7 @@ export function EntryDetailsDialog({
                                                             className={cn(
                                                                 "relative p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between gap-4",
                                                                 qty > 0
-                                                                    ? "bg-blue-500/10 border-blue-500/30"
+                                                                    ? "bg-red-500/10 border-red-500/30"
                                                                     : "bg-gray-800/40 border-gray-700/50"
                                                             )}
                                                         >
@@ -263,7 +263,7 @@ export function EntryDetailsDialog({
                                                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                 <div className={cn(
                                                                     "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                                                                    qty > 0 ? "bg-blue-500 text-white" : "bg-gray-700 text-gray-400"
+                                                                    qty > 0 ? "bg-red-600 text-white" : "bg-gray-700 text-gray-400"
                                                                 )}>
                                                                     <Coffee className="w-5 h-5" />
                                                                 </div>
@@ -298,7 +298,7 @@ export function EntryDetailsDialog({
                                                                         <motion.button
                                                                             whileTap={{ scale: 0.9 }}
                                                                             onClick={() => handleEditSnackChange(item.id, 1)}
-                                                                            className="h-9 w-9 rounded-lg bg-blue-600 border border-blue-500 text-white hover:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-600/20"
+                                                                            className="h-9 w-9 rounded-lg bg-red-600 border border-red-500 text-white hover:bg-red-500 flex items-center justify-center shadow-lg shadow-red-600/20"
                                                                         >
                                                                             <Plus className="w-4 h-4" />
                                                                         </motion.button>
@@ -327,12 +327,12 @@ export function EntryDetailsDialog({
                                     </div>
                                     <div className="flex gap-2">
                                         <div className="px-3 py-1.5 bg-gray-800 rounded-lg text-xs font-bold text-gray-300 border border-gray-700">
-                                            <Clock className="w-3 h-3 inline mr-1 text-blue-400" />
+                                            <Clock className="w-3 h-3 inline mr-1 text-red-400" />
                                             {editDuration}h
                                         </div>
                                         {totalItems > 0 && (
                                             <div className="px-3 py-1.5 bg-gray-800 rounded-lg text-xs font-bold text-gray-300 border border-gray-700">
-                                                <ShoppingCart className="w-3 h-3 inline mr-1 text-purple-400" />
+                                                <ShoppingCart className="w-3 h-3 inline mr-1 text-red-400" />
                                                 {totalItems}
                                             </div>
                                         )}
@@ -350,7 +350,7 @@ export function EntryDetailsDialog({
                                         <motion.div whileTap={{ scale: 0.98 }}>
                                             <Button
                                                 onClick={handleSubmit}
-                                                className="h-14 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-base shadow-xl shadow-blue-900/20 border border-blue-500/50"
+                                                className="h-14 w-full bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white rounded-xl font-bold text-base shadow-xl shadow-red-900/20 border border-red-500/50"
                                             >
                                                 Update Session
                                             </Button>

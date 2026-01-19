@@ -20,4 +20,11 @@ export interface CustomerEntry {
 
     age?: number
     paymentMode?: 'online' | 'offline'
+    screenNumber?: number
+    // Pause functionality
+    isPaused?: boolean
+    pausedAt?: Date
+    totalPausedTime?: number
+    // SMS tracking
+    smsSent?: boolean
 }

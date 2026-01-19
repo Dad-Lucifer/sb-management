@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { db } from '@/lib/firebase'
-import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import { checkAndArchiveOldData } from '@/lib/archiver'
+import { sendSessionEndSMS } from '@/lib/sms'
 import * as XLSX from 'xlsx'
 
 import { ALL_SNACKS_MAP, PER_PERSON_RATE } from '@/constants/inventory'
@@ -22,6 +23,7 @@ export default function GamingCafeDashboard() {
     const [duration, setDuration] = useState('')
     const [age, setAge] = useState('')
     const [paymentMode, setPaymentMode] = useState<'online' | 'offline'>('offline')
+    const [screenNumber, setScreenNumber] = useState<string>('')
     // New State for Structured Snacks
     const [selectedSnacks, setSelectedSnacks] = useState<Record<string, number>>({})
 
@@ -37,6 +39,9 @@ export default function GamingCafeDashboard() {
 
     // Ref to keep track of entries for the interval
     const recentEntriesRef = useRef<CustomerEntry[]>([])
+
+    // Track sessions that have already received SMS
+    const sentSMSRef = useRef<Set<string>>(new Set())
 
     // Update ref whenever entries change
     useEffect(() => {
@@ -86,7 +91,8 @@ export default function GamingCafeDashboard() {
                     id: doc.id,
                     ...data,
                     snacks: parsedSnacks,
-                    timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(data.timestamp)
+                    timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(data.timestamp),
+                    pausedAt: data.pausedAt ? (data.pausedAt instanceof Timestamp ? data.pausedAt.toDate() : new Date(data.pausedAt)) : undefined
                 }
             }) as CustomerEntry[]
             setRecentEntries(entries)
@@ -117,6 +123,89 @@ export default function GamingCafeDashboard() {
         // Run check once on mount
         runArchival();
     }, [])
+
+    // Monitor sessions and send SMS when they complete
+    useEffect(() => {
+        const checkAndSendSMS = async () => {
+            const now = currentTime.getTime();
+            // Only send SMS to sessions that completed within the last 5 minutes
+            const recentCompletionWindow = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+            for (const entry of recentEntries) {
+                // Skip if SMS already sent (check both in-memory and database)
+                if (sentSMSRef.current.has(entry.id) || entry.smsSent) {
+                    continue;
+                }
+
+                // Check if session is completed
+                const startTime = new Date(entry.timestamp).getTime();
+                const durationMs = entry.duration * 60 * 60 * 1000;
+                const totalPaused = entry.totalPausedTime || 0;
+                const endTime = startTime + durationMs + totalPaused;
+
+                // Calculate how long ago the session ended
+                const timeSinceCompletion = now - endTime;
+
+                // Only send SMS if:
+                // 1. Session has ended (endTime <= now)
+                // 2. Session is not paused
+                // 3. Session completed recently (within the last 5 minutes)
+                if (endTime <= now && !entry.isPaused && timeSinceCompletion <= recentCompletionWindow) {
+                    console.log(`Session recently completed for ${entry.customerName} (${Math.round(timeSinceCompletion / 1000)}s ago), sending SMS...`);
+
+                    const success = await sendSessionEndSMS({
+                        phoneNumber: entry.phoneNumber,
+                        customerName: entry.customerName,
+                        sessionDuration: entry.duration
+                    });
+
+                    if (success) {
+                        // Mark this session as SMS sent in memory
+                        sentSMSRef.current.add(entry.id);
+
+                        // Update Firestore to persist SMS status
+                        try {
+                            const entryRef = doc(db, "entries", entry.id);
+                            await updateDoc(entryRef, {
+                                smsSent: true
+                            });
+                            console.log(`SMS sent successfully to ${entry.customerName}`);
+                        } catch (error) {
+                            console.error(`Failed to update SMS status in database:`, error);
+                        }
+                    } else {
+                        console.error(`Failed to send SMS to ${entry.customerName}`);
+                    }
+                } else if (endTime <= now && !entry.isPaused && timeSinceCompletion > recentCompletionWindow) {
+                    // Session completed too long ago, mark as SMS sent without actually sending
+                    // This prevents trying to send SMS to old sessions
+                    if (!sentSMSRef.current.has(entry.id) && !entry.smsSent) {
+                        console.log(`Session for ${entry.customerName} completed too long ago (${Math.round(timeSinceCompletion / 60000)} minutes), skipping SMS`);
+                        sentSMSRef.current.add(entry.id);
+
+                        // Optionally update database to mark as processed
+                        try {
+                            const entryRef = doc(db, "entries", entry.id);
+                            await updateDoc(entryRef, {
+                                smsSent: false // Mark as false to indicate it was skipped, not sent
+                            });
+                        } catch (error) {
+                            console.error(`Failed to update SMS status:`, error);
+                        }
+                    }
+                }
+            }
+        };
+
+        // Check every 30 seconds for completed sessions
+        const interval = setInterval(checkAndSendSMS, 30000);
+
+        // Also check immediately
+        checkAndSendSMS();
+
+        return () => clearInterval(interval);
+    }, [recentEntries, currentTime])
+
 
 
 
@@ -154,7 +243,7 @@ export default function GamingCafeDashboard() {
 
 
     const handleProceed = async () => {
-        if (!customerName || !phoneNumber || !duration) {
+        if (!customerName || !phoneNumber || !duration || !screenNumber) {
             triggerErrorAnimation()
             return
         }
@@ -191,7 +280,8 @@ export default function GamingCafeDashboard() {
                 timestamp: Timestamp.now(),
                 isRenewed: false,
                 age: parseInt(age) || 0,
-                paymentMode: paymentMode
+                paymentMode: paymentMode,
+                screenNumber: parseInt(screenNumber) || 0
             })
 
             setTimeout(() => {
@@ -201,6 +291,7 @@ export default function GamingCafeDashboard() {
                 setDuration('')
                 setAge('')
                 setPaymentMode('offline')
+                setScreenNumber('')
                 setSelectedSnacks({})
                 setIsAnimating(false)
                 toast({
@@ -269,7 +360,52 @@ export default function GamingCafeDashboard() {
         }
     }
 
-    // Data for charts
+    const handleDeleteEntry = async (entryId: string) => {
+        try {
+            await deleteDoc(doc(db, "entries", entryId))
+            toast({ title: "Session Deleted", description: "The session has been removed.", className: "bg-red-600 border-red-500 text-white" })
+        } catch (error) {
+            console.error(error)
+            toast({ variant: "destructive", title: "Error", description: "Could not delete session." })
+        }
+    }
+
+    const handleTogglePause = async (entry: CustomerEntry) => {
+        const entryRef = doc(db, "entries", entry.id)
+        try {
+            if (entry.isPaused) {
+                // Resume logic: Shift start time by the duration it was paused to "skip" that time
+                // Or accumulate totalPausedTime. Let's use totalPausedTime for better tracking.
+                // Actually, if we use totalPausedTime, we need to adjust calculating active/expired logic everywhere.
+                // Simplest robust method: Shift timestamp forward.
+                // But user wants "Started Time". If we shift timestamp, started time changes.
+                // So better: Use totalPausedTime.
+
+                const pausedAt = entry.pausedAt || new Date()
+                const now = new Date()
+                const pauseDuration = now.getTime() - pausedAt.getTime()
+                const currentTotalPaused = entry.totalPausedTime || 0
+
+                await updateDoc(entryRef, {
+                    isPaused: false,
+                    pausedAt: null,
+                    totalPausedTime: currentTotalPaused + pauseDuration
+                })
+                toast({ title: "Session Resumed", className: "bg-green-600 border-green-500 text-white" })
+            } else {
+                // Pause
+                await updateDoc(entryRef, {
+                    isPaused: true,
+                    pausedAt: Timestamp.now()
+                })
+                toast({ title: "Session Paused", className: "bg-yellow-600 border-yellow-500 text-white" })
+            }
+        } catch (error) {
+            console.error(error)
+            toast({ variant: "destructive", title: "Error", description: "Could not update session status." })
+        }
+    }
+
     // Data for charts
     const getSnacksDistribution = (entries: CustomerEntry[]) => {
         const distribution: { [key: string]: number } = {}
@@ -318,9 +454,15 @@ export default function GamingCafeDashboard() {
 
     // Helper to check if a session is completed
     const isSessionCompleted = (entry: CustomerEntry) => {
+        if (entry.isPaused) return false // Paused sessions are considered ongoing? Or separate? Let's say ongoing but frozen.
         const startTime = new Date(entry.timestamp).getTime()
         const durationMs = entry.duration * 60 * 60 * 1000
-        const endTime = startTime + durationMs
+        // Effective End Time = Start + Duration + TotalPaused
+        // But if currently paused, the clock isn't ticking on remaining duration.
+        // Let's rely on RecentlyActivity's logic for display, but for stats, we check if it's past effective end date *assuming* it's currently running or finished.
+
+        const totalPaused = entry.totalPausedTime || 0
+        const endTime = startTime + durationMs + totalPaused
         return endTime <= currentTime.getTime()
     }
 
@@ -471,6 +613,8 @@ export default function GamingCafeDashboard() {
                                     setAge={setAge}
                                     paymentMode={paymentMode}
                                     setPaymentMode={setPaymentMode}
+                                    screenNumber={screenNumber}
+                                    setScreenNumber={setScreenNumber}
                                 />
 
                                 <RecentActivity
@@ -479,6 +623,8 @@ export default function GamingCafeDashboard() {
                                     setActivityTab={setActivityTab}
                                     currentTime={currentTime}
                                     openEntryDetails={openEntryDetails}
+                                    onDelete={handleDeleteEntry}
+                                    onPause={handleTogglePause}
                                 />
                             </motion.div>
                         ) : (
