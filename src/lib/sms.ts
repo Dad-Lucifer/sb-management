@@ -16,11 +16,11 @@ export interface SMSParams {
  * [Session Time] will be replaced with formatted session duration
  */
 const MESSAGE_TEMPLATES = [
-    "Hey [Name], your session at SB Game Zone has wrapped up! Thanks for playing with us—hope you had a great time. See you again soon!",
-    "Thanks for gaming with us, [Name]! You spent [Session Time] at SB Game Zone. Hope every minute was fun—come back soon!",
-    "Hey [Name], that was a solid gaming session at SB Game Zone! Thanks for choosing us. Can't wait to see you again.",
-    "Game over for now, [Name]! Thanks for spending [Session Time] at SB Game Zone. Ready for the next match?",
-    "Hey [Name], thanks for playing at SB Game Zone! Hope your session was packed with fun and excitement. See you soon!"
+    "Thanks for visiting us!",
+    "Thank you for your visit!",
+    "Thanks for gaming with us!",
+    "We appreciate your visit!",
+    "Thanks for stopping by!"
 ];
 
 /**
