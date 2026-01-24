@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Minus, Box, Save, RefreshCw, AlertCircle, TrendingUp, Package, AlertTriangle } from 'lucide-react'
+import { Plus, Minus, Save, RefreshCw, AlertCircle, TrendingUp, Package, AlertTriangle } from 'lucide-react'
 import { SNACK_INVENTORY } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
 import { BarChart, Bar, Tooltip, ResponsiveContainer, Cell } from 'recharts'
@@ -112,7 +112,7 @@ export function StockManagement({ stockData, onUpdateStock }: StockManagementPro
                                 cursor={{ fill: 'transparent' }}
                             />
                             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                {stats.categoryData.map((entry, index) => (
+                                {stats.categoryData.map((_, index) => (
                                     <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#eab308'} />
                                 ))}
                             </Bar>
