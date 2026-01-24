@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     TrendingUp, Users, Clock, PieChart as PieChartIcon,
     BarChart2, Zap, DollarSign, Activity, Trophy, Flame,
-    Banknote, CreditCard
+    Banknote, CreditCard, Calendar, Box
 } from 'lucide-react'
+import { StockManagement } from './StockManagement'
 import {
     PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar,
     XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area
@@ -12,7 +13,9 @@ import {
 import { COLORS } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
 
-export interface AnalyticsOverviewProps {
+export interface DailyAnalyticsData {
+    date: Date;
+    label: string;
     snacksData: any[];
     revenueData: any[];
     hourlyData: any[];
@@ -24,8 +27,24 @@ export interface AnalyticsOverviewProps {
     };
 }
 
-export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overallStats }: AnalyticsOverviewProps) {
-    const [activeTab, setActiveTab] = useState<'revenue' | 'inventory' | 'traffic'>('revenue')
+export interface AnalyticsOverviewProps {
+    historyData: DailyAnalyticsData[];
+    stockData: Record<string, number>;
+    onUpdateStock: (id: string, newQuantity: number) => Promise<void>;
+}
+
+export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: AnalyticsOverviewProps) {
+    const [activeTab, setActiveTab] = useState<'revenue' | 'inventory' | 'traffic' | 'stock'>('revenue')
+    const [selectedDayIndex, setSelectedDayIndex] = useState(0)
+
+    const currentData = historyData[selectedDayIndex] || {
+        snacksData: [],
+        revenueData: [],
+        hourlyData: [],
+        overallStats: { totalRevenue: 0, totalCustomers: 0, totalCash: 0, totalOnline: 0 }
+    }
+
+    const { snacksData, revenueData, hourlyData, overallStats } = currentData
 
     // --- Calculated Metrics ---
     const peakHour = useMemo(() => {
@@ -51,7 +70,7 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
     return (
         <div className="space-y-4 md:space-y-6 h-full flex flex-col">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 px-1">
                 <div>
                     <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3 tracking-tight">
                         Command Center
@@ -63,26 +82,53 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                     <p className="text-gray-500 text-[10px] md:text-xs font-medium uppercase tracking-widest mt-1">Live Performance Telemetry</p>
                 </div>
 
-                {/* Minimal Tab Switcher */}
-                <div className="flex p-1 bg-gray-900/80 rounded-full border border-gray-800 backdrop-blur-md self-start md:self-auto overflow-x-auto max-w-full no-scrollbar">
-                    <TabButton
-                        active={activeTab === 'revenue'}
-                        icon={DollarSign}
-                        label="Revenue"
-                        onClick={() => setActiveTab('revenue')}
-                    />
-                    <TabButton
-                        active={activeTab === 'inventory'}
-                        icon={PieChartIcon}
-                        label="Inventory"
-                        onClick={() => setActiveTab('inventory')}
-                    />
-                    <TabButton
-                        active={activeTab === 'traffic'}
-                        icon={Clock}
-                        label="Traffic"
-                        onClick={() => setActiveTab('traffic')}
-                    />
+                <div className="flex flex-col md:flex-row gap-3 items-start md:items-center self-start xl:self-auto w-full xl:w-auto">
+                    {/* Date Switcher */}
+                    <div className="flex p-1 bg-gray-900/80 rounded-xl border border-gray-800 backdrop-blur-md overflow-x-auto max-w-full no-scrollbar">
+                        {historyData.map((day, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => setSelectedDayIndex(idx)}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                                    selectedDayIndex === idx
+                                        ? "bg-gray-800 text-white shadow-sm ring-1 ring-white/10"
+                                        : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+                                )}
+                            >
+                                <Calendar className={cn("w-3 h-3", selectedDayIndex === idx ? "text-blue-400" : "text-gray-600")} />
+                                {day.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Minimal Tab Switcher */}
+                    <div className="flex p-1 bg-gray-900/80 rounded-full border border-gray-800 backdrop-blur-md overflow-x-auto max-w-full no-scrollbar">
+                        <TabButton
+                            active={activeTab === 'revenue'}
+                            icon={DollarSign}
+                            label="Revenue"
+                            onClick={() => setActiveTab('revenue')}
+                        />
+                        <TabButton
+                            active={activeTab === 'inventory'}
+                            icon={PieChartIcon}
+                            label="Inventory"
+                            onClick={() => setActiveTab('inventory')}
+                        />
+                        <TabButton
+                            active={activeTab === 'traffic'}
+                            icon={Clock}
+                            label="Traffic"
+                            onClick={() => setActiveTab('traffic')}
+                        />
+                        <TabButton
+                            active={activeTab === 'stock'}
+                            icon={Box}
+                            label="Stock"
+                            onClick={() => setActiveTab('stock')}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -316,6 +362,22 @@ export function AnalyticsOverview({ snacksData, revenueData, hourlyData, overall
                                         </ResponsiveContainer>
                                     ) : <NoDataState />}
                                 </div>
+                            </motion.div>
+                        )}
+
+                        {activeTab === 'stock' && (
+                            <motion.div
+                                key="stock"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 1.05 }}
+                                transition={{ duration: 0.3 }}
+                                className="h-full flex flex-col"
+                            >
+                                <StockManagement
+                                    stockData={stockData}
+                                    onUpdateStock={onUpdateStock}
+                                />
                             </motion.div>
                         )}
                     </AnimatePresence>

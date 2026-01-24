@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { format, subDays } from 'date-fns'
 import { db } from '@/lib/firebase'
-import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import { checkAndArchiveOldData } from '@/lib/archiver'
 import { sendSessionEndSMS } from '@/lib/sms'
@@ -26,6 +27,7 @@ export default function GamingCafeDashboard() {
     const [screenNumber, setScreenNumber] = useState<string>('')
     // New State for Structured Snacks
     const [selectedSnacks, setSelectedSnacks] = useState<Record<string, number>>({})
+    const [stockData, setStockData] = useState<Record<string, number>>({})
 
     const [recentEntries, setRecentEntries] = useState<CustomerEntry[]>([])
     const [activeTab, setActiveTab] = useState<'dashboard' | 'table' | 'overview'>('dashboard')
@@ -103,6 +105,67 @@ export default function GamingCafeDashboard() {
             unsubscribe()
         }
     }, [])
+
+    // Stock Subscription
+    useEffect(() => {
+        const unsubscribe = onSnapshot(doc(db, "inventory", "stock"), (doc) => {
+            if (doc.exists()) {
+                setStockData(doc.data() as Record<string, number>)
+            } else {
+                setStockData({})
+            }
+        })
+        return () => unsubscribe()
+    }, [])
+
+    const handleUpdateStock = async (id: string, newQuantity: number) => {
+        try {
+            await setDoc(doc(db, "inventory", "stock"), {
+                [id]: newQuantity
+            }, { merge: true })
+            toast({ title: "Stock Updated", className: "bg-green-600 border-green-500 text-white" })
+        } catch (error) {
+            console.error(error)
+            toast({ variant: "destructive", title: "Error", description: "Could not update stock." })
+        }
+    }
+
+    const deductStock = async (items: { id: string, quantity: number }[]): Promise<boolean> => {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const sfDocRef = doc(db, "inventory", "stock");
+                const sfDoc = await transaction.get(sfDocRef);
+
+                if (!sfDoc.exists()) {
+                    // Initialize if missing
+                    transaction.set(sfDocRef, {});
+                }
+
+                const currentStock = sfDoc.data() || {};
+                const updates: Record<string, number> = {};
+
+                // Check availability
+                for (const item of items) {
+                    const current = currentStock[item.id] || 0;
+                    if (current < item.quantity) {
+                        throw new Error(`Insufficient stock for ${ALL_SNACKS_MAP[item.id]?.name || item.id}`);
+                    }
+                    updates[item.id] = current - item.quantity;
+                }
+
+                transaction.update(sfDocRef, updates);
+            });
+            return true;
+        } catch (e: any) {
+            console.error("Transaction failed: ", e);
+            toast({
+                variant: 'destructive',
+                title: "Stock Error",
+                description: e.message
+            });
+            return false;
+        }
+    }
 
     // Check for old data to archive
     useEffect(() => {
@@ -259,6 +322,16 @@ export default function GamingCafeDashboard() {
 
         setIsAnimating(true)
 
+        // Check stock first
+        const snacksToDeduct = Object.entries(selectedSnacks).map(([id, count]) => ({ id, quantity: count }))
+        if (snacksToDeduct.length > 0) {
+            const success = await deductStock(snacksToDeduct)
+            if (!success) {
+                setIsAnimating(false)
+                return
+            }
+        }
+
         try {
             await addDoc(collection(db, "entries"), {
                 customerName: customerName.trim(),
@@ -344,6 +417,44 @@ export default function GamingCafeDashboard() {
                 subTotal: subTotal,
                 isRenewed: selectedEntry.isRenewed || isRenewed
             })
+
+            // Adjust stock
+            // Calculate delta
+            const oldSnackMap: Record<string, number> = {}
+            selectedEntry.snacks.forEach(s => oldSnackMap[s.id] = (oldSnackMap[s.id] || 0) + s.quantity)
+
+            const newSnackMap: Record<string, number> = {}
+            snacks.forEach(s => newSnackMap[s.id] = (newSnackMap[s.id] || 0) + s.quantity)
+
+            const allIds = new Set([...Object.keys(oldSnackMap), ...Object.keys(newSnackMap)])
+
+            // We need to 'deduct' the net change. 
+            // If new > old, effective quantity to deduct is (new - old).
+            // If new < old, effective quantity is negative (refund), so stock increases.
+            // However, `deductStock` checks for sufficiency. Refunds are always safe.
+            // Deduct inputs: {id, quantity}. If quantity is negative, it adds stock.
+
+            const adjustments: { id: string, quantity: number }[] = []
+
+            allIds.forEach(id => {
+                const oldQ = oldSnackMap[id] || 0
+                const newQ = newSnackMap[id] || 0
+                const delta = newQ - oldQ
+                if (delta !== 0) {
+                    adjustments.push({ id, quantity: delta })
+                }
+            })
+
+            if (adjustments.length > 0) {
+                // We use the same transaction logic. If delta is positive, we are consuming more -> check stock.
+                // If delta is negative, we are refunding -> safely add back.
+                // Note: Our deductStock implementations checks 'current < quantity'. 
+                // If quantity is negative (e.g. -2), current < -2 is always false (assuming stock >= 0). 
+                // So refunds pass automatically. 
+                // 'current - quantity' becomes 'current - (-2)' = 'current + 2'. Correct.
+                await deductStock(adjustments)
+            }
+
             closeEntryDetails()
             toast({
                 title: "Session Updated",
@@ -475,24 +586,60 @@ export default function GamingCafeDashboard() {
     const avgSessionValue = totalCustomers > 0 ? totalRevenue / totalCustomers : 0
     const totalHours = statsEntries.reduce((sum, entry) => sum + entry.duration, 0)
 
-    const totalCash = statsEntries
-        .filter(e => e.paymentMode === 'offline' || !e.paymentMode)
-        .reduce((sum, entry) => sum + entry.subTotal, 0)
 
-    const totalOnline = statsEntries
-        .filter(e => e.paymentMode === 'online')
-        .reduce((sum, entry) => sum + entry.subTotal, 0)
 
-    const completedTodayEntries = todayEntries.filter(isSessionCompleted)
+    const getStatsForDate = (targetDate: Date) => {
+        const startOfDay = new Date(targetDate)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(targetDate)
+        endOfDay.setHours(23, 59, 59, 999)
 
-    const snacksData = getSnacksDistribution(completedTodayEntries)
-    // Analytics: Map hourly data to 'date' key for the AreaChart (showing Today's Hourly Revenue)
-    const hourlyData = getHourlyDistribution(completedTodayEntries)
-    const revenueData = hourlyData.map(d => ({
-        date: d.hour,
-        revenue: d.revenue,
-        customers: d.customers
-    }))
+        const dayEntries = recentEntries.filter(entry => {
+            const t = new Date(entry.timestamp)
+            return t >= startOfDay && t <= endOfDay
+        })
+
+        const completedEntries = dayEntries.filter(isSessionCompleted)
+
+        const tRevenue = completedEntries.reduce((sum, entry) => sum + entry.subTotal, 0)
+        const tCustomers = completedEntries.length
+        const tCash = completedEntries
+            .filter(e => e.paymentMode === 'offline' || !e.paymentMode)
+            .reduce((sum, entry) => sum + entry.subTotal, 0)
+        const tOnline = completedEntries
+            .filter(e => e.paymentMode === 'online')
+            .reduce((sum, entry) => sum + entry.subTotal, 0)
+
+        const sData = getSnacksDistribution(completedEntries)
+        const hStats = getHourlyDistribution(completedEntries)
+        const rData = hStats.map(d => ({
+            date: d.hour,
+            revenue: d.revenue,
+            customers: d.customers
+        }))
+
+        return {
+            snacksData: sData,
+            revenueData: rData,
+            hourlyData: hStats,
+            overallStats: {
+                totalRevenue: tRevenue,
+                totalCustomers: tCustomers,
+                totalCash: tCash,
+                totalOnline: tOnline
+            }
+        }
+    }
+
+    const historyData = [0, 1, 2].map(daysAgo => {
+        const date = subDays(currentTime, daysAgo)
+        const label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : format(date, 'EEE, dd MMM')
+        return {
+            date,
+            label,
+            ...getStatsForDate(date)
+        }
+    })
 
     const handleDownloadExcel = () => {
         try {
@@ -573,15 +720,9 @@ export default function GamingCafeDashboard() {
                                 transition={{ duration: 0.3 }}
                             >
                                 <AnalyticsOverview
-                                    snacksData={snacksData}
-                                    revenueData={revenueData}
-                                    hourlyData={hourlyData}
-                                    overallStats={{
-                                        totalRevenue,
-                                        totalCustomers,
-                                        totalCash,
-                                        totalOnline
-                                    }}
+                                    historyData={historyData}
+                                    stockData={stockData}
+                                    onUpdateStock={handleUpdateStock}
                                 />
                             </motion.div>
                         ) : activeTab === 'dashboard' ? (
