@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Minus, Save, RefreshCw, AlertCircle, TrendingUp, Package, AlertTriangle } from 'lucide-react'
+import { Plus, Minus, Save, RefreshCw, AlertCircle, TrendingUp, Package, AlertTriangle, Search } from 'lucide-react'
 import { SNACK_INVENTORY } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
 import { BarChart, Bar, Tooltip, ResponsiveContainer, Cell } from 'recharts'
@@ -13,13 +13,14 @@ interface StockManagementProps {
 export function StockManagement({ stockData, onUpdateStock }: StockManagementProps) {
     const [updatingId, setUpdatingId] = useState<string | null>(null)
     const [localStock, setLocalStock] = useState<Record<string, number>>({})
+    const [searchQuery, setSearchQuery] = useState('')
 
     // --- Derived Metrics ---
     const stats = useMemo(() => {
         let totalItems = 0
         let totalValue = 0
         let lowStockCount = 0
-        const categoryData: any[] = []
+        const categoryData: Array<{ name: string; value: number; color: string }> = []
 
         Object.values(SNACK_INVENTORY).forEach(cat => {
             let catValue = 0
@@ -40,9 +41,35 @@ export function StockManagement({ stockData, onUpdateStock }: StockManagementPro
         return { totalItems, totalValue, lowStockCount, categoryData }
     }, [stockData])
 
+    // Memoized flat list for rendering
+    const allItems = useMemo(() => {
+        return Object.values(SNACK_INVENTORY).flatMap(cat =>
+            cat.items.map(item => ({
+                ...item,
+                categoryLabel: cat.label,
+                categoryColor: cat.textColor,
+                categoryIcon: cat.icon
+            }))
+        )
+    }, [])
+
+    const filteredItems = useMemo(() => {
+        if (!searchQuery) return allItems
+        const lowerQ = searchQuery.toLowerCase()
+        return allItems.filter(item =>
+            item.name.toLowerCase().includes(lowerQ) ||
+            (item.shortName && item.shortName.toLowerCase().includes(lowerQ))
+        )
+    }, [allItems, searchQuery])
+
+
     const handleStockChange = (id: string, val: string) => {
+        if (val === '') {
+            setLocalStock(prev => ({ ...prev, [id]: 0 }))
+            return
+        }
         const num = parseInt(val)
-        if (!isNaN(num) && num >= 0) {
+        if (!isNaN(num) && num >= 0 && num <= 9999) {
             setLocalStock(prev => ({ ...prev, [id]: num }))
         }
     }
@@ -65,177 +92,268 @@ export function StockManagement({ stockData, onUpdateStock }: StockManagementPro
         }
     }
 
+    const cardVariants = {
+        hidden: { opacity: 0, y: 15 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+        exit: { opacity: 0, scale: 0.95, transition: { duration: 0.1 } }
+    }
+
     return (
-        <div className="h-full flex flex-col space-y-3 md:space-y-4">
-            {/* Header & Stats Grid */}
-            <div className="shrink-0 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 bg-gray-900/50 p-2 md:p-3 rounded-2xl border border-gray-800/50 backdrop-blur-sm shadow-sm">
-                <div className="flex flex-col bg-gray-800/30 rounded-xl p-2 md:p-0 md:bg-transparent">
-                    <span className="text-[9px] md:text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-0.5">Total Stock</span>
-                    <span className="text-lg md:text-2xl font-black text-white flex items-center gap-1.5">
-                        <Package className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
-                        {stats.totalItems}
-                    </span>
+        <div className="h-full flex flex-col space-y-4 font-sans max-w-[100vw] overflow-hidden">
+            {/* Header Section: Stats & Search */}
+            <div className="shrink-0 flex flex-col gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+                    <StatCard
+                        label="Total Stock"
+                        value={stats.totalItems}
+                        icon={Package}
+                        color="text-blue-400"
+                        bg="bg-blue-500/10"
+                        borderColor="border-blue-500/20"
+                    />
+                    <StatCard
+                        label="Total Value"
+                        value={`₹${stats.totalValue.toLocaleString()}`}
+                        icon={TrendingUp}
+                        color="text-emerald-400"
+                        bg="bg-emerald-500/10"
+                        borderColor="border-emerald-500/20"
+                    />
+                    <StatCard
+                        label="Low Stock"
+                        value={stats.lowStockCount}
+                        icon={AlertTriangle}
+                        color={stats.lowStockCount > 0 ? "text-rose-400" : "text-gray-400"}
+                        bg={stats.lowStockCount > 0 ? "bg-rose-500/10" : "bg-gray-800/50"}
+                        borderColor={stats.lowStockCount > 0 ? "border-rose-500/20" : "border-gray-800"}
+                        isAlert={stats.lowStockCount > 0}
+                    />
+
+                    {/* Mini Chart */}
+                    <div className="bg-gray-900/40 border border-gray-800/50 rounded-xl p-2 min-h-[70px] flex items-end">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.categoryData}>
+                                <Tooltip
+                                    cursor={{ fill: 'transparent' }}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload as { name: string; value: number };
+                                            return (
+                                                <div className="bg-gray-900 border border-gray-700 p-1.5 rounded text-[10px] shadow-xl text-white z-50">
+                                                    <span className='font-bold'>{data.name}:</span> <span className='text-emerald-400'>₹{payload[0].value}</span>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+                                    {stats.categoryData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color || '#3b82f6'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
-                <div className="flex flex-col bg-gray-800/30 rounded-xl p-2 md:p-0 md:bg-transparent">
-                    <span className="text-[9px] md:text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-0.5">Value</span>
-                    <span className="text-lg md:text-2xl font-black text-white flex items-center gap-1.5">
-                        <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
-                        ₹{stats.totalValue.toLocaleString()}
-                    </span>
-                </div>
-                <div className="flex flex-col bg-gray-800/30 rounded-xl p-2 md:p-0 md:bg-transparent">
-                    <span className="text-[9px] md:text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-0.5">Low Items</span>
-                    <span className={cn(
-                        "text-lg md:text-2xl font-black flex items-center gap-1.5",
-                        stats.lowStockCount > 0 ? "text-red-400" : "text-gray-400"
-                    )}>
-                        <AlertTriangle className="w-4 h-4 md:w-5 md:h-5" />
-                        {stats.lowStockCount}
-                    </span>
-                </div>
-                {/* Mini Chart Area */}
-                <div className="flex-1 h-14 md:h-auto min-h-[48px] bg-gray-800/30 rounded-xl md:bg-transparent p-1 md:p-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats.categoryData}>
-                            <Tooltip
-                                content={({ active, payload }) => {
-                                    if (active && payload && payload.length) {
-                                        return (
-                                            <div className="bg-black/90 border border-gray-800 p-2 rounded text-xs z-50 shadow-xl">
-                                                <p className="font-bold text-white">{payload[0].payload.name}</p>
-                                                <p className="text-green-400">₹{payload[0].value}</p>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                                cursor={{ fill: 'transparent' }}
-                            />
-                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                {stats.categoryData.map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#eab308'} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+
+                {/* Search Bar */}
+                <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Search items..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-gray-900/50 border border-gray-800 focus:border-blue-500/50 rounded-xl pl-9 pr-3 py-2.5 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all shadow-sm"
+                    />
                 </div>
             </div>
 
-            {/* Inventory List */}
-            <div className="flex-1 overflow-y-auto pr-1 md:pr-2 custom-scrollbar touch-pan-y">
-                <div className="grid grid-cols-1 gap-3 md:gap-4 pb-20 lg:grid-cols-2">
-                    {Object.values(SNACK_INVENTORY).flatMap(category =>
-                        category.items.map(item => {
+            {/* Inventory Grid */}
+            <div className="flex-1 overflow-y-auto pr-1 -mr-1 custom-scrollbar">
+                <AnimatePresence mode='popLayout'>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 pb-24">
+                        {filteredItems.map(item => {
                             const currentStock = localStock[item.id] ?? stockData[item.id] ?? 0
-                            const isChanged = localStock[item.id] !== undefined && localStock[item.id] !== (stockData[item.id] ?? 0)
-                            const isLow = (stockData[item.id] ?? 0) < 5
+                            const serverStock = stockData[item.id] ?? 0
+                            const isChanged = localStock[item.id] !== undefined && localStock[item.id] !== serverStock
+                            const isLow = serverStock < 5
                             const maxStock = 50
                             const stockPercent = Math.min((currentStock / maxStock) * 100, 100)
-
-                            const barColor = currentStock < 5 ? 'bg-red-500' : currentStock < 20 ? 'bg-yellow-500' : 'bg-green-500'
 
                             return (
                                 <motion.div
                                     layout
+                                    variants={cardVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    exit="exit"
                                     key={item.id}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
                                     className={cn(
-                                        "relative overflow-hidden bg-gray-900/40 border rounded-xl p-3 md:p-4 flex flex-col gap-3 transition-all duration-300 group active:scale-[0.99]",
-                                        isChanged ? "border-blue-500/50 shadow-[0_0_15px_-3px_rgba(59,130,246,0.3)]" : "border-gray-800/50",
-                                        isLow && !isChanged ? "border-red-500/30 bg-red-900/10" : ""
+                                        "group relative flex flex-col gap-3 p-3 md:p-4 rounded-xl border transition-all duration-300 isolate",
+                                        "bg-gray-900/40 backdrop-blur-sm",
+                                        isChanged ? "border-blue-500/40 shadow-[0_0_20px_-10px_rgba(59,130,246,0.3)] bg-gray-900/80 z-10" : "border-gray-800/40 hover:border-gray-700/60 hover:bg-gray-900/60",
+                                        isLow && !isChanged ? "border-rose-500/20 bg-rose-900/5" : ""
                                     )}
                                 >
-                                    {/* Background Progress Bar */}
-                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800/50">
+                                    {/* Stock Progress Indicator */}
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 md:h-1 bg-gray-800/30 overflow-hidden rounded-b-xl">
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${stockPercent}%` }}
-                                            className={cn("h-full opacity-50", barColor)}
+                                            transition={{ duration: 0.5, ease: "easeOut" }}
+                                            className={cn("h-full",
+                                                currentStock < 5 ? "bg-rose-500" :
+                                                    currentStock < 20 ? "bg-amber-500" : "bg-emerald-500"
+                                            )}
                                         />
                                     </div>
 
-                                    <div className="flex items-center justify-between z-10">
-                                        <div className="flex items-center gap-3 md:gap-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3 min-w-0">
                                             <div className={cn(
-                                                "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center bg-gray-800 shadow-inner ring-1 ring-white/5 shrink-0",
-                                                category.textColor
+                                                "w-11 h-11 md:w-12 md:h-12 rounded-lg flex items-center justify-center bg-gray-800 shadow-inner ring-1 ring-white/5 shrink-0",
+                                                item.categoryColor
                                             )}>
-                                                <category.icon className="w-6 h-6 md:w-7 md:h-7 transition-transform group-hover:scale-110" />
+                                                <item.categoryIcon className="w-5 h-5 md:w-6 md:h-6 transition-transform group-hover:scale-110 duration-300" />
                                             </div>
-                                            <div>
-                                                <p className="font-black text-gray-100 text-sm md:text-lg leading-tight">{item.name}</p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[10px] md:text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-mono font-bold">₹{item.price}</span>
+                                            <div className="min-w-0">
+                                                <h3 className="font-bold text-gray-200 text-sm md:text-base leading-tight truncate">
+                                                    {item.name}
+                                                </h3>
+                                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                    <Badge text={`₹${item.price}`} className="bg-gray-800 text-gray-400" />
                                                     {isLow && (
-                                                        <span className="text-[10px] md:text-xs font-bold text-red-400 flex items-center gap-1 animate-pulse">
-                                                            <AlertCircle className="w-3 h-3" /> Low
-                                                        </span>
+                                                        <Badge text="Low Stock" icon={AlertCircle} className="bg-rose-500/10 text-rose-400 border-rose-500/20 border" />
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="text-right shrink-0">
-                                            <span className="block text-2xl md:text-3xl font-black text-white tracking-tighter tabular-nums">
+                                            <div className={cn(
+                                                "text-2xl md:text-3xl font-black tracking-tighter tabular-nums transition-colors",
+                                                isChanged ? "text-blue-400" : "text-white"
+                                            )}>
                                                 {currentStock}
-                                            </span>
-                                            <span className="text-[9px] md:text-[10px] text-gray-500 uppercase font-bold tracking-wider">In Stock</span>
+                                            </div>
+                                            <div className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-gray-500">In Stock</div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2 mt-1 z-10 h-10 md:h-12">
-                                        <div className="flex-1 flex items-center bg-black/40 rounded-lg border border-gray-800 p-1 group-focus-within:border-blue-500/50 transition-colors h-full">
-                                            <button
+                                    {/* Action Area */}
+                                    <div className="flex items-center gap-2 h-11 md:h-12 mt-auto z-10 pt-1">
+                                        <div className="flex-1 flex items-center bg-black/40 rounded-lg border border-gray-800 p-1 group-focus-within:border-blue-500/40 transition-colors h-full overflow-hidden">
+                                            <ControlBtn
+                                                icon={Minus}
                                                 onClick={() => handleStockChange(item.id, Math.max(0, currentStock - 1).toString())}
-                                                className="w-10 h-full flex items-center justify-center rounded-md hover:bg-gray-700 text-gray-400 hover:text-white transition-colors active:scale-95 touch-manipulation"
-                                            >
-                                                <Minus className="w-4 h-4 md:w-5 md:h-5" />
-                                            </button>
+                                            />
                                             <input
                                                 type="number"
                                                 inputMode="numeric"
-                                                pattern="[0-9]*"
                                                 value={currentStock}
                                                 onChange={(e) => handleStockChange(item.id, e.target.value)}
-                                                className="flex-1 bg-transparent text-center font-mono font-bold text-white text-lg focus:outline-none appearance-none h-full"
+                                                className="flex-1 w-full bg-transparent text-center font-mono font-bold text-white text-lg focus:outline-none appearance-none px-0"
                                             />
-                                            <button
+                                            <ControlBtn
+                                                icon={Plus}
                                                 onClick={() => handleStockChange(item.id, (currentStock + 1).toString())}
-                                                className="w-10 h-full flex items-center justify-center rounded-md hover:bg-gray-700 text-gray-400 hover:text-white transition-colors active:scale-95 touch-manipulation"
-                                            >
-                                                <Plus className="w-4 h-4 md:w-5 md:h-5" />
-                                            </button>
+                                            />
                                         </div>
 
                                         <AnimatePresence>
                                             {isChanged && (
                                                 <motion.button
-                                                    initial={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
-                                                    animate={{ opacity: 1, width: 'auto', paddingLeft: 16, paddingRight: 16 }}
-                                                    exit={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
+                                                    initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+                                                    animate={{ width: 'auto', opacity: 1, marginLeft: 8 }}
+                                                    exit={{ width: 0, opacity: 0, marginLeft: 0 }}
                                                     onClick={() => saveStock(item.id)}
                                                     disabled={updatingId === item.id}
-                                                    className="h-full bg-blue-600 hover:bg-blue-500 box-shadow-blue text-white rounded-lg flex items-center justify-center gap-2 text-xs md:text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 active:scale-95 overflow-hidden whitespace-nowrap"
+                                                    className="h-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center justify-center gap-2 px-4 shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden whitespace-nowrap"
                                                 >
                                                     {updatingId === item.id ? (
-                                                        <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                                                        <RefreshCw className="w-5 h-5 animate-spin" />
                                                     ) : (
-                                                        <>
-                                                            <Save className="w-4 h-4 md:w-5 md:h-5" />
-                                                            <span className="hidden sm:inline">Save</span>
-                                                        </>
+                                                        <Save className="w-5 h-5" />
                                                     )}
+                                                    <span className="hidden sm:inline font-bold text-sm">Save</span>
                                                 </motion.button>
                                             )}
                                         </AnimatePresence>
                                     </div>
                                 </motion.div>
                             )
-                        })
-                    )}
-                </div>
+                        })}
+                    </div>
+                </AnimatePresence>
+
+                {filteredItems.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-40 text-gray-500">
+                        <Search className="w-10 h-10 mb-3 opacity-20" />
+                        <p className="text-sm font-medium opacity-50">No items found matching "{searchQuery}"</p>
+                    </div>
+                )}
             </div>
         </div>
+    )
+}
+
+interface StatCardProps {
+    label: string;
+    value: string | number;
+    icon: React.ElementType;
+    color?: string;
+    bg?: string;
+    borderColor?: string;
+    isAlert?: boolean;
+}
+
+function StatCard({ label, value, icon: Icon, color, bg, borderColor, isAlert = false }: StatCardProps) {
+    return (
+        <div className={cn(
+            "flex flex-col p-2 md:p-3 rounded-xl border backdrop-blur-md transition-all h-full justify-between",
+            bg, borderColor,
+            isAlert ? "animate-pulse" : ""
+        )}>
+            <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 truncate">{label}</span>
+                <Icon className={cn("w-3.5 h-3.5 md:w-4 md:h-4", color)} />
+            </div>
+            <div className={cn("text-lg md:text-xl lg:text-2xl font-black truncate", color || "text-white")}>
+                {value}
+            </div>
+        </div>
+    )
+}
+
+interface BadgeProps {
+    text: string;
+    icon?: React.ElementType;
+    className?: string;
+}
+
+function Badge({ text, icon: Icon, className }: BadgeProps) {
+    return (
+        <span className={cn("text-[9px] md:text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-mono font-bold whitespace-nowrap", className)}>
+            {Icon && <Icon className="w-3 h-3" />}
+            {text}
+        </span>
+    )
+}
+
+interface ControlBtnProps {
+    icon: React.ElementType;
+    onClick: () => void;
+}
+
+function ControlBtn({ icon: Icon, onClick }: ControlBtnProps) {
+    return (
+        <button
+            onClick={onClick}
+            className="w-10 md:w-12 h-full flex items-center justify-center rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors active:scale-95 touch-manipulation"
+        >
+            <Icon className="w-5 h-5" />
+        </button>
     )
 }
