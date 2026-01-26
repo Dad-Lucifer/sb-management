@@ -185,7 +185,10 @@ export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: Ana
             </div>
 
             {/* Main Visualizer Area */}
-            <div className="bg-gradient-to-b from-gray-900/50 to-black/50 rounded-2xl md:rounded-3xl border border-gray-800/50 backdrop-blur-xl relative overflow-hidden flex flex-col h-[400px] md:h-[500px]">
+            <div className={cn(
+                "bg-gradient-to-b from-gray-900/50 to-black/50 rounded-2xl md:rounded-3xl border border-gray-800/50 backdrop-blur-xl relative overflow-hidden flex flex-col",
+                activeTab === 'stock' ? "h-auto min-h-[400px] md:h-[500px]" : "h-[400px] md:h-[500px]"
+            )}>
                 {/* Background Glows */}
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
