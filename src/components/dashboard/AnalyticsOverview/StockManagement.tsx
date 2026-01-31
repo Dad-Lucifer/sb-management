@@ -1,552 +1,414 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Minus, Save, RefreshCw, AlertCircle, TrendingUp, Package, AlertTriangle, Search, X, Filter } from 'lucide-react'
+import {
+    Search, LayoutGrid, List, AlertTriangle,
+    Package, DollarSign, RefreshCw, Save, Plus, Minus,
+    X
+} from 'lucide-react'
 import { SNACK_INVENTORY } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
-import { Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts'
+
+// --- Types ---
 
 interface StockManagementProps {
     stockData: Record<string, number>;
     onUpdateStock: (id: string, newQuantity: number) => Promise<void>;
 }
 
-type ViewMode = 'grid' | 'compact' | 'list'
-type FilterMode = 'all' | 'low' | 'medium' | 'high'
+type ViewMode = 'card' | 'list';
+type FilterStatus = 'all' | 'low' | 'medium' | 'high';
 
-export function StockManagement({ stockData, onUpdateStock }: StockManagementProps) {
-    const [updatingId, setUpdatingId] = useState<string | null>(null)
-    const [localStock, setLocalStock] = useState<Record<string, number>>({})
-    const [searchQuery, setSearchQuery] = useState('')
-    const [viewMode] = useState<ViewMode>('grid')
-    const [filterMode, setFilterMode] = useState<FilterMode>('all')
-    const [showFilters, setShowFilters] = useState(false)
+interface EnrichedSnackItem {
+    id: string;
+    name: string;
+    price: number;
+    categoryLabel: string;
+    categoryColor: string;
+    currentStock: number;
+    status: 'low' | 'medium' | 'high';
+    shortName?: string;
+}
 
-    // --- Derived Metrics ---
-    const stats = useMemo(() => {
-        let totalItems = 0
-        let totalValue = 0
-        let lowStockCount = 0
-        let mediumStockCount = 0
-        let highStockCount = 0
-        const categoryData: Array<{ name: string; value: number; color: string; count: number }> = []
+const STOCK_THRESHOLDS = { LOW: 5, MEDIUM: 20 } as const;
 
-        Object.values(SNACK_INVENTORY).forEach(cat => {
-            let catValue = 0
-            let catCount = 0
-            cat.items.forEach(item => {
-                const count = stockData[item.id] ?? 0
-                totalItems += count
-                totalValue += count * item.price
-                catValue += count * item.price
-                catCount += count
+// --- Sub-Components ---
 
-                if (count < 5) lowStockCount++
-                else if (count < 20) mediumStockCount++
-                else highStockCount++
-            })
-            categoryData.push({
-                name: cat.label,
-                value: catValue,
-                count: catCount,
-                color: cat.items[0]?.id ? '#3b82f6' : '#eab308'
-            })
-        })
+/**
+ * Mobile-First Stat Card
+ * - Uses responsive width (42vw) to ensure 2.x cards are visible on 320px screens
+ * - Enforces minimum touch/view areas
+ * - Snap-aligned for horizontal scrolling
+ */
+const StatCard = memo(({ label, value, icon: Icon, colorClass }: {
+    label: string,
+    value: string | number,
+    icon: React.ElementType,
+    colorClass: string
+}) => (
+    <div className="min-w-[42vw] sm:min-w-[160px] md:min-w-[200px] flex-1 relative overflow-hidden rounded-2xl bg-gray-900/60 border border-white/5 p-4 backdrop-blur-xl snap-start scroll-ml-4">
+        <div className={cn("absolute -right-3 -top-3 opacity-10 p-3 rounded-full", colorClass)}>
+            <Icon className="w-16 h-16" />
+        </div>
+        <div className="flex flex-col h-full justify-between gap-3 relative z-10">
+            <div className="flex items-center gap-2">
+                <div className={cn("flex items-center justify-center w-6 h-6 rounded-lg bg-white/10", colorClass)}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[80%]">{label}</span>
+            </div>
+            <span className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate">{value}</span>
+        </div>
+    </div>
+));
+StatCard.displayName = 'StatCard';
 
-        return { totalItems, totalValue, lowStockCount, mediumStockCount, highStockCount, categoryData }
-    }, [stockData])
+/**
+ * Mobile-First Stock Item Card
+ * - Touch targets: All interactive elements min-h-[44px]
+ * - Layout: Fluid flexbox with truncation, never breaks on 320px
+ * - Interactions: Local state for instant feedback
+ */
+const StockItemCard = memo(({ item, onUpdate, isUpdating, viewMode }: {
+    item: EnrichedSnackItem,
+    onUpdate: (id: string, qty: number) => void,
+    isUpdating: boolean,
+    viewMode: ViewMode
+}) => {
+    const [draftStock, setDraftStock] = useState<number>(item.currentStock);
+    const [isDirty, setIsDirty] = useState(false);
 
-    // Memoized flat list for rendering
-    const allItems = useMemo(() => {
-        return Object.values(SNACK_INVENTORY).flatMap(cat =>
-            cat.items.map(item => ({
-                ...item,
-                categoryLabel: cat.label,
-                categoryColor: cat.textColor,
-                categoryIcon: cat.icon
-            }))
-        )
-    }, [])
+    // Sync state when props change (refresh) but not during local edits
+    useEffect(() => {
+        if (!isDirty) setDraftStock(item.currentStock);
+    }, [item.currentStock, isDirty]);
 
-    const filteredItems = useMemo(() => {
-        let items = allItems
+    const handleDelta = useCallback((delta: number) => {
+        setDraftStock(prev => {
+            const next = Math.max(0, prev + delta);
+            setIsDirty(next !== item.currentStock);
+            return next;
+        });
+    }, [item.currentStock]);
 
-        // Apply search filter
-        if (searchQuery) {
-            const lowerQ = searchQuery.toLowerCase()
-            items = items.filter(item =>
-                item.name.toLowerCase().includes(lowerQ) ||
-                (item.shortName && item.shortName.toLowerCase().includes(lowerQ))
-            )
-        }
+    const handleSave = useCallback(async () => {
+        await onUpdate(item.id, draftStock);
+        setIsDirty(false);
+    }, [item.id, draftStock, onUpdate]);
 
-        // Apply stock level filter
-        if (filterMode !== 'all') {
-            items = items.filter(item => {
-                const stock = stockData[item.id] ?? 0
-                if (filterMode === 'low') return stock < 5
-                if (filterMode === 'medium') return stock >= 5 && stock < 20
-                if (filterMode === 'high') return stock >= 20
-                return true
-            })
-        }
+    const statusColors = {
+        low: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+        medium: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+        high: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    };
 
-        return items
-    }, [allItems, searchQuery, filterMode, stockData])
-
-    const handleStockChange = (id: string, val: string) => {
-        if (val === '') {
-            setLocalStock(prev => ({ ...prev, [id]: 0 }))
-            return
-        }
-        const num = parseInt(val)
-        if (!isNaN(num) && num >= 0 && num <= 9999) {
-            setLocalStock(prev => ({ ...prev, [id]: num }))
-        }
-    }
-
-    const incrementStock = (id: string, amount: number = 1) => {
-        const current = localStock[id] ?? stockData[id] ?? 0
-        handleStockChange(id, Math.max(0, current + amount).toString())
-    }
-
-    const decrementStock = (id: string, amount: number = 1) => {
-        const current = localStock[id] ?? stockData[id] ?? 0
-        handleStockChange(id, Math.max(0, current - amount).toString())
-    }
-
-    const saveStock = async (id: string) => {
-        const newValue = localStock[id]
-        if (newValue === undefined) return
-
-        setUpdatingId(id)
-        try {
-            await onUpdateStock(id, newValue)
-            setLocalStock(prev => {
-                const { [id]: _, ...rest } = prev
-                return rest
-            })
-        } catch (error) {
-            console.error("Failed to update stock", error)
-        } finally {
-            setUpdatingId(null)
-        }
-    }
-
-    const cardVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-        exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
-    }
-
-    const stockLevelData = [
-        { name: 'Low Stock', value: stats.lowStockCount, color: '#ef4444' },
-        { name: 'Medium Stock', value: stats.mediumStockCount, color: '#f59e0b' },
-        { name: 'High Stock', value: stats.highStockCount, color: '#10b981' }
-    ]
-
-    return (
-        <div className="h-auto md:h-full flex flex-col gap-3 sm:gap-4 font-sans max-w-[100vw] overflow-visible md:overflow-hidden px-1 sm:px-0">
-            {/* Header Section: Stats */}
-            <div className="shrink-0 flex flex-col gap-3">
-                {/* Primary Stats - Always Visible */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-                    <StatCard
-                        label="Total Stock"
-                        value={stats.totalItems}
-                        icon={Package}
-                        color="text-blue-400"
-                        bg="bg-gradient-to-br from-blue-500/10 to-blue-600/5"
-                        borderColor="border-blue-500/20"
-                    />
-                    <StatCard
-                        label="Total Value"
-                        value={`₹${stats.totalValue.toLocaleString()}`}
-                        icon={TrendingUp}
-                        color="text-emerald-400"
-                        bg="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5"
-                        borderColor="border-emerald-500/20"
-                    />
-                    <StatCard
-                        label="Low Stock"
-                        value={stats.lowStockCount}
-                        icon={AlertTriangle}
-                        color={stats.lowStockCount > 0 ? "text-rose-400" : "text-gray-400"}
-                        bg={stats.lowStockCount > 0 ? "bg-gradient-to-br from-rose-500/10 to-rose-600/5" : "bg-gray-800/30"}
-                        borderColor={stats.lowStockCount > 0 ? "border-rose-500/20" : "border-gray-800/50"}
-                        isAlert={stats.lowStockCount > 0}
-                    />
-
-                    {/* Chart Card - Responsive */}
-                    <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-gray-900/60 to-gray-900/40 border border-gray-800/50 rounded-xl p-3 sm:p-4 backdrop-blur-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">Stock Levels</span>
-                        </div>
-                        <div className="h-16 sm:h-20 flex items-center justify-center">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={stockLevelData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius="60%"
-                                        outerRadius="90%"
-                                        paddingAngle={2}
-                                        dataKey="value"
-                                    >
-                                        {stockLevelData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        content={({ active, payload }) => {
-                                            if (active && payload && payload.length) {
-                                                return (
-                                                    <div className="bg-gray-900 border border-gray-700 p-2 rounded-lg text-xs shadow-xl text-white">
-                                                        <span className='font-bold'>{payload[0].name}:</span> <span className='text-blue-400'>{payload[0].value}</span>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
+    // LIST VIEW: Horizontal Row (Density optimized)
+    if (viewMode === 'list') {
+        return (
+            <motion.div
+                layout="position"
+                className={cn(
+                    "flex items-center gap-3 p-3 pl-4 rounded-xl border bg-gray-900/40 backdrop-blur-sm transition-all focus-within:ring-1 focus-within:ring-blue-500/50",
+                    isDirty ? "border-blue-500/50 bg-blue-500/5" : "border-gray-800"
+                )}
+            >
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-gray-100 text-sm truncate">{item.name}</h3>
+                        <span className={cn("text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase shrink-0", statusColors[item.status])}>
+                            {item.status}
+                        </span>
                     </div>
+                    <div className="text-xs text-gray-500 font-mono mt-0.5">₹{item.price} / unit</div>
                 </div>
 
-                {/* Search & Filter Bar */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                    {/* Search */}
-                    <div className="relative group flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-400 transition-colors pointer-events-none" />
+                <div className="flex items-center gap-2 shrink-0">
+                    <span className={cn(
+                        "text-lg font-bold tabular-nums w-8 text-right transition-colors",
+                        isDirty ? "text-blue-400" : "text-white"
+                    )}>
+                        {draftStock}
+                    </span>
+
+                    {/* Controls Group */}
+                    <div className="flex items-center bg-gray-950 rounded-lg border border-gray-800 p-0.5 h-11">
+                        <button
+                            onClick={() => handleDelta(-1)}
+                            className="w-10 h-full flex items-center justify-center rounded-md hover:bg-white/10 active:bg-white/20 active:scale-95 text-gray-400 hover:text-white transition-all touch-manipulation"
+                            aria-label="Decrease stock"
+                        >
+                            <Minus className="w-5 h-5" />
+                        </button>
+                        <div className="w-[1px] h-4 bg-gray-800" />
+                        <button
+                            onClick={() => handleDelta(1)}
+                            className="w-10 h-full flex items-center justify-center rounded-md hover:bg-white/10 active:bg-white/20 active:scale-95 text-gray-400 hover:text-white transition-all touch-manipulation"
+                            aria-label="Increase stock"
+                        >
+                            <Plus className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Float Save Button */}
+                    <AnimatePresence>
+                        {isDirty && (
+                            <motion.button
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                onClick={handleSave}
+                                disabled={isUpdating}
+                                className="w-11 h-11 flex items-center justify-center bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20 active:scale-95 touch-manipulation ml-1"
+                                aria-label="Save changes"
+                            >
+                                {isUpdating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </motion.div>
+        );
+    }
+
+    // CARD VIEW: Vertical Stack (Visual optimized)
+    return (
+        <motion.div
+            layout="position"
+            className={cn(
+                "flex flex-col p-4 rounded-2xl border bg-gradient-to-br from-gray-900/80 to-gray-900/40 backdrop-blur-sm transition-all relative overflow-hidden group",
+                isDirty ? "border-blue-500/50 shadow-[0_0_20px_-10px_rgba(59,130,246,0.3)]" : "border-gray-800"
+            )}
+        >
+            {/* Upper Content */}
+            <div className="flex justify-between items-start mb-4">
+                <div className="min-w-0 flex-1 mr-4">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1 block truncate">
+                        {item.categoryLabel}
+                    </span>
+                    <h3 className="text-lg font-bold text-gray-100 leading-tight truncate">{item.name}</h3>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <span className="text-xs font-mono text-gray-400 bg-gray-950 px-2 py-1 rounded-md border border-gray-800">
+                            ₹{item.price}
+                        </span>
+                        <span className={cn("text-[10px] px-2 py-1 rounded-md border font-bold uppercase shadow-sm", statusColors[item.status])}>
+                            {item.status}
+                        </span>
+                    </div>
+                </div>
+                {/* Large Counter */}
+                <div className="text-right shrink-0">
+                    <div className={cn("text-4xl font-black tabular-nums tracking-tighter transition-colors", isDirty ? "text-blue-400" : "text-white")}>
+                        {draftStock}
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Controls - Full Width Touch Targets */}
+            <div className="mt-auto pt-2 grid grid-cols-[1fr,auto] gap-2">
+                <div className="flex items-center bg-black/40 rounded-xl border border-gray-800 p-1 h-12">
+                    <button
+                        onClick={() => handleDelta(-1)}
+                        className="flex-1 h-full flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all text-gray-400 hover:text-white touch-manipulation"
+                        aria-label="Decrease stock"
+                    >
+                        <Minus className="w-5 h-5" />
+                    </button>
+                    <div className="px-3 text-[10px] font-bold text-gray-600 uppercase select-none">Qty</div>
+                    <button
+                        onClick={() => handleDelta(1)}
+                        className="flex-1 h-full flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all text-gray-400 hover:text-white touch-manipulation"
+                        aria-label="Increase stock"
+                    >
+                        <Plus className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <AnimatePresence mode="popLayout">
+                    {isDirty && (
+                        <motion.button
+                            initial={{ width: 0, opacity: 0, scale: 0.8 }}
+                            animate={{ width: 'auto', opacity: 1, scale: 1 }}
+                            exit={{ width: 0, opacity: 0, scale: 0.8 }}
+                            onClick={handleSave}
+                            disabled={isUpdating}
+                            className="h-12 w-14 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center touch-manipulation"
+                            aria-label="Save Stock"
+                        >
+                            {isUpdating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                        </motion.button>
+                    )}
+                </AnimatePresence>
+            </div>
+        </motion.div>
+    );
+});
+StockItemCard.displayName = 'StockItemCard';
+
+
+export function StockManagement({ stockData, onUpdateStock }: StockManagementProps) {
+    // --- State ---
+    const [viewMode, setViewMode] = useState<ViewMode>('card');
+    const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+
+    // --- Processing ---
+    const enrichedItems = useMemo<EnrichedSnackItem[]>(() => {
+        return Object.values(SNACK_INVENTORY).flatMap(category =>
+            category.items.map(item => {
+                const stock = stockData[item.id] ?? 0;
+                let status: EnrichedSnackItem['status'] = 'high';
+                if (stock < STOCK_THRESHOLDS.LOW) status = 'low';
+                else if (stock < STOCK_THRESHOLDS.MEDIUM) status = 'medium';
+
+                return {
+                    ...item,
+                    currentStock: stock,
+                    categoryLabel: category.label,
+                    categoryColor: category.textColor,
+                    status
+                };
+            })
+        );
+    }, [stockData]);
+
+    const stats = useMemo(() => ({
+        totalItems: enrichedItems.reduce((acc, i) => acc + i.currentStock, 0),
+        totalValue: enrichedItems.reduce((acc, i) => acc + (i.currentStock * i.price), 0),
+        lowStock: enrichedItems.filter(i => i.status === 'low').length,
+    }), [enrichedItems]);
+
+    const filteredItems = useMemo(() => {
+        return enrichedItems.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+            if (!matchesSearch) return false;
+            if (activeFilter === 'all') return true;
+            return item.status === activeFilter;
+        });
+    }, [enrichedItems, searchQuery, activeFilter]);
+
+    // --- Handlers ---
+    const handleUpdateStock = useCallback(async (id: string, newQty: number) => {
+        setUpdatingIds(prev => new Set(prev).add(id));
+        try {
+            await onUpdateStock(id, newQty);
+        } catch (error) {
+            console.error("Update failed", error);
+        } finally {
+            setUpdatingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+        }
+    }, [onUpdateStock]);
+
+    return (
+        <div className="flex flex-col h-full bg-[#0a0a0a] text-white overflow-hidden font-sans">
+
+            {/* 1. Mobile-First Header Stack */}
+            <div className="shrink-0 flex flex-col gap-4 p-1 sm:p-0 pb-4 w-full max-w-[100vw]">
+
+                {/* Stats Row - Horizontal Snap Scroll */}
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 sm:mx-0 sm:px-0 scrollbar-hide snap-x scroll-pl-1">
+                    <StatCard label="Total Stock" value={stats.totalItems} icon={Package} colorClass="bg-blue-500" />
+                    <StatCard label="Total Value" value={`₹${stats.totalValue.toLocaleString()}`} icon={DollarSign} colorClass="bg-emerald-500" />
+                    <StatCard label="Alerts" value={stats.lowStock} icon={AlertTriangle} colorClass={stats.lowStock > 0 ? "bg-rose-500" : "bg-gray-500"} />
+                </div>
+
+                {/* Toolbar */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                    {/* Search Field - Height 48px */}
+                    <div className="relative flex-1 group h-12">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                        </div>
                         <input
                             type="text"
-                            placeholder="Search items..."
+                            placeholder="Find items..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-gray-900/50 border border-gray-800 focus:border-blue-500/50 rounded-xl pl-10 pr-10 py-2.5 sm:py-3 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                            className="block w-full h-full rounded-xl bg-gray-900 border border-gray-800 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 text-base sm:text-sm pl-11 pr-11 outline-none transition-all placeholder:text-gray-600 appearance-none text-white"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                                className="absolute inset-y-0 right-0 pr-0 w-12 flex items-center justify-center text-gray-500 active:text-white"
                             >
-                                <X className="w-4 h-4" />
+                                <X className="h-5 w-5" />
                             </button>
                         )}
                     </div>
 
-                    {/* Filter Button - Mobile */}
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className={cn(
-                            "sm:hidden flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border transition-all",
-                            showFilters
-                                ? "bg-blue-600 border-blue-500 text-white"
-                                : "bg-gray-900/50 border-gray-800 text-gray-400 hover:border-gray-700"
-                        )}
-                    >
-                        <Filter className="w-4 h-4" />
-                        <span className="text-sm font-medium">Filter</span>
-                    </button>
-
-                    {/* Filter Chips - Desktop */}
-                    <div className="hidden sm:flex items-center gap-2">
-                        {(['all', 'low', 'medium', 'high'] as FilterMode[]).map((mode) => (
-                            <button
-                                key={mode}
-                                onClick={() => setFilterMode(mode)}
-                                className={cn(
-                                    "px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize whitespace-nowrap",
-                                    filterMode === mode
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                                        : "bg-gray-900/50 text-gray-400 border border-gray-800 hover:border-gray-700 hover:text-gray-300"
-                                )}
-                            >
-                                {mode}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Mobile Filter Dropdown */}
-                <AnimatePresence>
-                    {showFilters && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="sm:hidden overflow-hidden"
-                        >
-                            <div className="flex flex-wrap gap-2 p-3 bg-gray-900/50 border border-gray-800 rounded-xl">
-                                {(['all', 'low', 'medium', 'high'] as FilterMode[]).map((mode) => (
-                                    <button
-                                        key={mode}
-                                        onClick={() => {
-                                            setFilterMode(mode)
-                                            setShowFilters(false)
-                                        }}
-                                        className={cn(
-                                            "flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all capitalize",
-                                            filterMode === mode
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-gray-800 text-gray-400 hover:text-gray-300"
-                                        )}
-                                    >
-                                        {mode}
-                                    </button>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Inventory Grid */}
-            <div className="flex-1 md:overflow-y-auto pr-1 -mr-1 custom-scrollbar min-h-0">
-                <AnimatePresence mode='popLayout'>
-                    <div className={cn(
-                        "grid gap-2 sm:gap-3 pb-20 sm:pb-24",
-                        viewMode === 'grid' && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
-                        viewMode === 'compact' && "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
-                        viewMode === 'list' && "grid-cols-1"
-                    )}>
-                        {filteredItems.map(item => {
-                            const currentStock = localStock[item.id] ?? stockData[item.id] ?? 0
-                            const serverStock = stockData[item.id] ?? 0
-                            const isChanged = localStock[item.id] !== undefined && localStock[item.id] !== serverStock
-                            const isLow = serverStock < 5
-                            const isMedium = serverStock >= 5 && serverStock < 20
-                            const maxStock = 50
-                            const stockPercent = Math.min((currentStock / maxStock) * 100, 100)
-
-                            return (
-                                <motion.div
-                                    layout
-                                    variants={cardVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    exit="exit"
-                                    key={item.id}
+                    {/* Actions Row */}
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar h-12">
+                        {/* Filter Chips - Height 44px range */}
+                        <div className="flex items-center bg-gray-900 rounded-xl p-1 border border-gray-800 h-full">
+                            {(['all', 'low', 'medium'] as FilterStatus[]).map(status => (
+                                <button
+                                    key={status}
+                                    onClick={() => setActiveFilter(status)}
                                     className={cn(
-                                        "group relative flex flex-col gap-3 p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-300 isolate overflow-hidden",
-                                        "bg-gradient-to-br from-gray-900/60 to-gray-900/40 backdrop-blur-sm",
-                                        isChanged
-                                            ? "border-blue-500/50 shadow-[0_0_30px_-10px_rgba(59,130,246,0.4)] bg-gradient-to-br from-blue-900/20 to-gray-900/60 z-10 scale-[1.02]"
-                                            : "border-gray-800/50 hover:border-gray-700/70 hover:bg-gradient-to-br hover:from-gray-900/80 hover:to-gray-900/60",
-                                        isLow && !isChanged ? "border-rose-500/30 bg-gradient-to-br from-rose-900/10 to-gray-900/40" : "",
-                                        isMedium && !isChanged && !isLow ? "border-amber-500/20 bg-gradient-to-br from-amber-900/5 to-gray-900/40" : ""
+                                        "px-4 h-full flex items-center justify-center rounded-lg text-xs font-bold uppercase transition-all whitespace-nowrap",
+                                        activeFilter === status
+                                            ? "bg-gray-800 text-white shadow-sm ring-1 ring-white/5"
+                                            : "text-gray-500 hover:text-gray-300 active:bg-white/5"
                                     )}
                                 >
-                                    {/* Animated Background Gradient */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                                    {/* Stock Progress Indicator */}
-                                    <div className="absolute bottom-0 left-0 right-0 h-1 sm:h-1.5 bg-gray-800/40 overflow-hidden rounded-b-xl sm:rounded-b-2xl">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${stockPercent}%` }}
-                                            transition={{ duration: 0.6, ease: "easeOut" }}
-                                            className={cn(
-                                                "h-full shadow-lg",
-                                                currentStock < 5 ? "bg-gradient-to-r from-rose-500 to-rose-600" :
-                                                    currentStock < 20 ? "bg-gradient-to-r from-amber-500 to-amber-600" :
-                                                        "bg-gradient-to-r from-emerald-500 to-emerald-600"
-                                            )}
-                                        />
-                                    </div>
-
-                                    <div className="flex justify-between items-start relative z-10">
-                                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                                            <div className={cn(
-                                                "w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-white/10 shrink-0 transition-all duration-300",
-                                                "bg-gradient-to-br from-gray-800 to-gray-900",
-                                                item.categoryColor,
-                                                "group-hover:scale-105 group-hover:shadow-xl"
-                                            )}>
-                                                <item.categoryIcon className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110 duration-300" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="font-bold text-gray-100 text-sm sm:text-base leading-tight truncate">
-                                                    {item.name}
-                                                </h3>
-                                                <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 flex-wrap">
-                                                    <Badge text={`₹${item.price}`} className="bg-gray-800/80 text-gray-300 ring-1 ring-white/5" />
-                                                    {isLow && (
-                                                        <Badge text="Low" icon={AlertCircle} className="bg-rose-500/20 text-rose-400 border-rose-500/30 border ring-1 ring-rose-500/20" />
-                                                    )}
-                                                    {isMedium && (
-                                                        <Badge text="Med" className="bg-amber-500/20 text-amber-400 border-amber-500/30 border ring-1 ring-amber-500/20" />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-right shrink-0 ml-2">
-                                            <div className={cn(
-                                                "text-2xl sm:text-3xl font-black tracking-tighter tabular-nums transition-all duration-300",
-                                                isChanged ? "text-blue-400 scale-110" : "text-white"
-                                            )}>
-                                                {currentStock}
-                                            </div>
-                                            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500">Stock</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Area */}
-                                    <div className="flex items-center gap-2 h-12 sm:h-14 mt-auto z-10 relative">
-                                        <div className="flex-1 flex items-center bg-black/40 rounded-lg sm:rounded-xl border border-gray-800/80 p-1 sm:p-1.5 group-focus-within:border-blue-500/50 transition-all h-full overflow-hidden shadow-inner backdrop-blur-sm">
-                                            <ControlBtn
-                                                icon={Minus}
-                                                onClick={() => decrementStock(item.id)}
-                                                onLongPress={() => decrementStock(item.id, 5)}
-                                            />
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                value={currentStock}
-                                                onChange={(e) => handleStockChange(item.id, e.target.value)}
-                                                className="flex-1 w-full bg-transparent text-center font-mono font-bold text-white text-base sm:text-lg focus:outline-none appearance-none px-1 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                            />
-                                            <ControlBtn
-                                                icon={Plus}
-                                                onClick={() => incrementStock(item.id)}
-                                                onLongPress={() => incrementStock(item.id, 5)}
-                                            />
-                                        </div>
-
-                                        <AnimatePresence>
-                                            {isChanged && (
-                                                <motion.button
-                                                    initial={{ width: 0, opacity: 0, scale: 0.8 }}
-                                                    animate={{ width: 'auto', opacity: 1, scale: 1 }}
-                                                    exit={{ width: 0, opacity: 0, scale: 0.8 }}
-                                                    transition={{ duration: 0.2 }}
-                                                    onClick={() => saveStock(item.id)}
-                                                    disabled={updatingId === item.id}
-                                                    className="h-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg sm:rounded-xl flex items-center justify-center gap-2 px-3 sm:px-4 shadow-lg shadow-blue-500/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden whitespace-nowrap transition-all"
-                                                >
-                                                    {updatingId === item.id ? (
-                                                        <RefreshCw className="w-5 h-5 animate-spin" />
-                                                    ) : (
-                                                        <Save className="w-5 h-5" />
-                                                    )}
-                                                    <span className="hidden sm:inline font-bold text-sm">Save</span>
-                                                </motion.button>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                </motion.div>
-                            )
-                        })}
-                    </div>
-                </AnimatePresence>
-
-                {filteredItems.length === 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center justify-center h-60 sm:h-80 text-gray-500"
-                    >
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-800/50 flex items-center justify-center mb-4">
-                            <Search className="w-10 h-10 sm:w-12 sm:h-12 opacity-30" />
+                                    {status}
+                                </button>
+                            ))}
                         </div>
-                        <p className="text-base sm:text-lg font-bold opacity-70 mb-1">No items found</p>
-                        <p className="text-xs sm:text-sm opacity-50">Try adjusting your search or filters</p>
-                    </motion.div>
-                )}
-            </div>
-        </div>
-    )
-}
 
-interface StatCardProps {
-    label: string;
-    value: string | number;
-    icon: React.ElementType;
-    color?: string;
-    bg?: string;
-    borderColor?: string;
-    isAlert?: boolean;
-}
+                        <div className="w-px h-6 bg-gray-800 shrink-0 mx-1" />
 
-function StatCard({ label, value, icon: Icon, color, bg, borderColor, isAlert = false }: StatCardProps) {
-    return (
-        <motion.div
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-                "flex flex-col p-3 sm:p-4 rounded-xl sm:rounded-2xl border backdrop-blur-md transition-all h-full justify-between shadow-lg relative overflow-hidden",
-                bg, borderColor,
-                isAlert ? "animate-pulse" : ""
-            )}
-        >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
-            <div className="flex items-center justify-between mb-2 relative z-10">
-                <span className="text-[10px] sm:text-[11px] uppercase tracking-widest font-bold text-gray-400 truncate">{label}</span>
-                <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center bg-black/20 ring-1 ring-white/5", color)}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                        {/* Layout Toggle - Height 44px range */}
+                        <div className="flex items-center bg-gray-900 rounded-xl p-1 border border-gray-800 h-full shrink-0">
+                            <button
+                                onClick={() => setViewMode('card')}
+                                className={cn("w-10 h-full flex items-center justify-center rounded-lg transition-colors", viewMode === 'card' ? "bg-gray-800 text-white" : "text-gray-500")}
+                                aria-label="Card View"
+                            >
+                                <LayoutGrid className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={cn("w-10 h-full flex items-center justify-center rounded-lg transition-colors", viewMode === 'list' ? "bg-gray-800 text-white" : "text-gray-500")}
+                                aria-label="List View"
+                            >
+                                <List className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className={cn("text-xl sm:text-2xl lg:text-3xl font-black truncate relative z-10", color || "text-white")}>
-                {value}
+
+            {/* 2. Scrollable Content - Mobile Safe Bottom Padding */}
+            <div className="flex-1 min-h-0 relative -mx-1 px-1 sm:mx-0 sm:px-0">
+                <div className="absolute inset-0 overflow-y-auto pb-40 custom-scrollbar">
+                    {filteredItems.length > 0 ? (
+                        <div className={cn(
+                            "grid gap-3 transition-all",
+                            viewMode === 'card'
+                                ? "grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                                : "grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3"
+                        )}>
+                            {filteredItems.map(item => (
+                                <StockItemCard
+                                    key={item.id}
+                                    item={item}
+                                    onUpdate={handleUpdateStock}
+                                    isUpdating={updatingIds.has(item.id)}
+                                    viewMode={viewMode}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+                            <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center mb-4">
+                                <Search className="w-8 h-8 opacity-20" />
+                            </div>
+                            <p className="text-sm font-bold text-gray-400">No inventory found</p>
+                            <p className="text-xs opacity-50">Try adjusting filters</p>
+                        </div>
+                    )}
+                </div>
             </div>
-        </motion.div>
-    )
-}
-
-interface BadgeProps {
-    text: string;
-    icon?: React.ElementType;
-    className?: string;
-}
-
-function Badge({ text, icon: Icon, className }: BadgeProps) {
-    return (
-        <span className={cn("text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md flex items-center gap-1 font-mono font-bold whitespace-nowrap backdrop-blur-sm", className)}>
-            {Icon && <Icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
-            {text}
-        </span>
-    )
-}
-
-interface ControlBtnProps {
-    icon: React.ElementType;
-    onClick: () => void;
-    onLongPress?: () => void;
-}
-
-function ControlBtn({ icon: Icon, onClick, onLongPress }: ControlBtnProps) {
-    const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null)
-
-    const handleMouseDown = () => {
-        if (onLongPress) {
-            const timer = setTimeout(() => {
-                onLongPress()
-            }, 500)
-            setPressTimer(timer)
-        }
-    }
-
-    const handleMouseUp = () => {
-        if (pressTimer) {
-            clearTimeout(pressTimer)
-            setPressTimer(null)
-        }
-    }
-
-    return (
-        <button
-            onClick={onClick}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleMouseDown}
-            onTouchEnd={handleMouseUp}
-            className="w-10 sm:w-12 h-full flex items-center justify-center rounded-md sm:rounded-lg hover:bg-white/10 active:bg-white/20 text-gray-400 hover:text-white transition-all active:scale-95 touch-manipulation select-none"
-        >
-            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-        </button>
+        </div>
     )
 }
