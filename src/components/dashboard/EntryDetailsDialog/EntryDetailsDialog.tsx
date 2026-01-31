@@ -188,7 +188,7 @@ export function EntryDetailsDialog({
                         {/* Scrollable Content Area */}
                         <div className="flex-1 min-h-0 relative overflow-hidden bg-gradient-to-b from-transparent to-black">
                             <ScrollArea className="h-full">
-                                <div className="p-6 pb-32">
+                                <div className="p-6 pb-64">
 
                                     {/* SECTION: SESSION PARAMETERS */}
                                     {activeSection === 'session' && (
