@@ -7,7 +7,7 @@ import { checkAndArchiveOldData } from '@/lib/archiver'
 import { sendSessionEndSMS } from '@/lib/sms'
 import * as XLSX from 'xlsx'
 
-import { ALL_SNACKS_MAP, PER_PERSON_RATE } from '@/constants/inventory'
+import { ALL_SNACKS_MAP, getHourlyRate } from '@/constants/inventory'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
 import { DashboardHeader } from '@/components/dashboard/Header/DashboardHeader'
 import { EntryForm } from '@/components/dashboard/EntryForm/EntryForm'
@@ -284,7 +284,7 @@ export default function GamingCafeDashboard() {
             }
         })
 
-        return (durationNum * peopleNum * PER_PERSON_RATE) + snacksPrice
+        return (durationNum * peopleNum * getHourlyRate(peopleNum)) + snacksPrice
     }
 
 
@@ -407,7 +407,7 @@ export default function GamingCafeDashboard() {
 
         try {
             const snacksPrice = snacks.reduce((total, snack) => total + (snack.totalPrice || 0), 0)
-            const subTotal = (newDuration * newPeople * PER_PERSON_RATE) + snacksPrice
+            const subTotal = (newDuration * newPeople * getHourlyRate(newPeople)) + snacksPrice
 
             const entryRef = doc(db, "entries", selectedEntry.id)
             await updateDoc(entryRef, {

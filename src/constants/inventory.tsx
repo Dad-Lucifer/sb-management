@@ -2,6 +2,13 @@ import { CupSoda, Cookie } from 'lucide-react'
 
 export const PER_PERSON_RATE = 50
 
+export const getHourlyRate = (numberOfPeople: number): number => {
+    if (numberOfPeople === 1) return 100
+    if (numberOfPeople === 2) return 75
+    return 50 // More than 2 people
+}
+
+
 export interface SnackItem {
     id: string;
     name: string;

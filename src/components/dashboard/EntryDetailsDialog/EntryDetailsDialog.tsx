@@ -5,7 +5,7 @@ import {
     Crown, Check, Coffee, CreditCard, Banknote
 } from 'lucide-react'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
-import { SNACK_INVENTORY, ALL_SNACKS_MAP, PER_PERSON_RATE } from '@/constants/inventory'
+import { SNACK_INVENTORY, ALL_SNACKS_MAP, getHourlyRate } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,7 +71,7 @@ export function EntryDetailsDialog({
         const durationNum = parseFloat(editDuration) || 0
         const peopleNum = parseInt(editNumberOfPeople) || 1
         const snacksPrice = editSnacks.reduce((total, snack) => total + (snack.totalPrice || 0), 0)
-        return (durationNum * peopleNum * PER_PERSON_RATE) + snacksPrice
+        return (durationNum * peopleNum * getHourlyRate(peopleNum)) + snacksPrice
     }
 
     const handleSubmit = async () => {

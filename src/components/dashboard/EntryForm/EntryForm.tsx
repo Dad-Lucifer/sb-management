@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SNACK_INVENTORY, ALL_SNACKS_MAP, PER_PERSON_RATE } from '@/constants/inventory'
+import { SNACK_INVENTORY, ALL_SNACKS_MAP, getHourlyRate } from '@/constants/inventory'
 
 export interface EntryFormProps {
     customerName: string;
@@ -369,7 +369,7 @@ export function EntryForm({
                     <div className="flex flex-row md:flex-col justify-between md:justify-end md:text-right md:space-y-1 border-t border-gray-800 md:border-t-0 pt-3 md:pt-0">
                         <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
                             <Zap className="w-3 h-3" />
-                            Gaming: <span className="text-gray-300">₹{((parseFloat(duration) || 0) * (parseInt(numberOfPeople) || 1) * PER_PERSON_RATE).toFixed(2)}</span>
+                            Gaming: <span className="text-gray-300">₹{((parseFloat(duration) || 0) * (parseInt(numberOfPeople) || 1) * getHourlyRate(parseInt(numberOfPeople) || 1)).toFixed(2)}</span>
                         </div>
                         <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
                             <Coffee className="w-3 h-3" />
