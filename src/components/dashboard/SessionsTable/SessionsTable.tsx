@@ -1,8 +1,8 @@
-import { Download, CreditCard, Banknote } from 'lucide-react'
+import { Download, CreditCard, Banknote, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CustomerEntry } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
     Select,
     SelectContent,
@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { format, startOfWeek, endOfWeek } from 'date-fns'
 
 export interface SessionsTableProps {
     recentEntries: CustomerEntry[];
@@ -22,23 +23,71 @@ export function SessionsTable({
     handleDownloadExcel,
     openEntryDetails
 }: SessionsTableProps) {
+    // Initialize with current month
+    const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'))
     const [selectedWeek, setSelectedWeek] = useState<string>('all')
+    const [paymentFilter, setPaymentFilter] = useState<string>('all')
 
-    // Helper to get start of week (Monday)
-    const getStartOfWeek = (d: Date) => {
-        const date = new Date(d);
-        const day = date.getDay();
-        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-        return new Date(date.setDate(diff));
-    }
+    // Detect if the selected month is the current ongoing month
+    const isCurrentMonth = useMemo(() => {
+        const now = new Date();
+        return selectedMonth === format(now, 'yyyy-MM');
+    }, [selectedMonth]);
 
-    // Generate Week Options
-    const weekOptions = useMemo(() => {
-        const weeksMap = new Map<string, Date>();
+    // Group entries by Month to generate Month Options
+    const monthOptions = useMemo(() => {
+        const monthsSet = new Set<string>();
+        // Always include current month
+        monthsSet.add(format(new Date(), 'yyyy-MM'));
+
         recentEntries.forEach(entry => {
+            try {
+                const date = new Date(entry.timestamp);
+                // Ensure valid date
+                if (!isNaN(date.getTime())) {
+                    monthsSet.add(format(date, 'yyyy-MM'));
+                }
+            } catch (e) {
+                console.error("Invalid date for entry", entry);
+            }
+        });
+
+        return Array.from(monthsSet)
+            .sort((a, b) => b.localeCompare(a)) // Descending
+            .map(monthStr => {
+                const [y, m] = monthStr.split('-').map(Number);
+                const date = new Date(y, m - 1);
+                return {
+                    value: monthStr,
+                    label: format(date, 'MMMM yyyy')
+                };
+            });
+    }, [recentEntries]);
+
+    // Reset week selection when month changes
+    useEffect(() => {
+        setSelectedWeek('all')
+    }, [selectedMonth])
+
+    // Filter Entries by Selected Month
+    const entriesInSelectedMonth = useMemo(() => {
+        return recentEntries.filter(entry => {
             const date = new Date(entry.timestamp);
-            const start = getStartOfWeek(date);
-            const key = start.toISOString().split('T')[0]; // YYYY-MM-DD
+            return format(date, 'yyyy-MM') === selectedMonth;
+        });
+    }, [recentEntries, selectedMonth]);
+
+    // Generate Week Options (Only for Current Month)
+    const weekOptions = useMemo(() => {
+        if (!isCurrentMonth) return [];
+
+        const weeksMap = new Map<string, Date>();
+
+        entriesInSelectedMonth.forEach(entry => {
+            const date = new Date(entry.timestamp);
+            // Use local start of week (Monday)
+            const start = startOfWeek(date, { weekStartsOn: 1 });
+            const key = format(start, 'yyyy-MM-dd');
             if (!weeksMap.has(key)) {
                 weeksMap.set(key, start);
             }
@@ -48,29 +97,47 @@ export function SessionsTable({
         return Array.from(weeksMap.entries())
             .sort((a, b) => b[0].localeCompare(a[0]))
             .map(([key, date]) => {
-                const end = new Date(date);
-                end.setDate(date.getDate() + 6);
-                const label = `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString([], { month: 'short', day: 'numeric' })}`
+                const end = endOfWeek(date, { weekStartsOn: 1 });
+                const label = `Week of ${format(date, 'd MMM')} - ${format(end, 'd MMM')}`;
                 return { value: key, label };
             });
-    }, [recentEntries]);
+    }, [entriesInSelectedMonth, isCurrentMonth]);
 
-    // Filter Entries
+    // Final Filtered Entries (Apply Week & Payment Filters)
     const filteredEntries = useMemo(() => {
-        if (selectedWeek === 'all') return recentEntries;
-        return recentEntries.filter(entry => {
-            const date = new Date(entry.timestamp);
-            const start = getStartOfWeek(date);
-            return start.toISOString().split('T')[0] === selectedWeek;
-        });
-    }, [recentEntries, selectedWeek]);
+        let entries = entriesInSelectedMonth;
 
-    // Calculate Totals
+        // Apply Week Filter (only for current month)
+        if (isCurrentMonth && selectedWeek !== 'all') {
+            entries = entries.filter(entry => {
+                const date = new Date(entry.timestamp);
+                const start = startOfWeek(date, { weekStartsOn: 1 });
+                return format(start, 'yyyy-MM-dd') === selectedWeek;
+            });
+        }
+
+        // Apply Payment Filter
+        if (paymentFilter !== 'all') {
+            entries = entries.filter(entry => {
+                const isOnline = entry.paymentMode === 'online';
+                if (paymentFilter === 'online') return isOnline;
+                if (paymentFilter === 'cash') return !isOnline; // Includes 'offline' and undefined
+                return true;
+            });
+        }
+
+        return entries;
+    }, [entriesInSelectedMonth, selectedWeek, isCurrentMonth, paymentFilter]);
+
+    // Calculate Totals for the *visible* entries
     const stats = useMemo(() => {
         let cash = 0;
         let online = 0;
         filteredEntries.forEach(e => {
-            if (e.paymentMode === 'online') {
+            if (e.splitPayment) {
+                cash += e.splitPayment.cashAmount;
+                online += e.splitPayment.onlineAmount;
+            } else if (e.paymentMode === 'online') {
                 online += e.subTotal;
             } else {
                 cash += e.subTotal;
@@ -85,22 +152,64 @@ export function SessionsTable({
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-xl md:text-2xl font-light text-white mb-1">Customer Sessions</h2>
-                        <p className="text-gray-500 text-xs md:text-sm">Overview of {selectedWeek === 'all' ? 'all' : 'selected week'} sessions</p>
+                        <div className="flex items-center gap-2 text-gray-500 text-xs md:text-sm">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                                {monthOptions.find(opt => opt.value === selectedMonth)?.label || selectedMonth}
+                            </span>
+                            {!isCurrentMonth && <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">Archived</span>}
+                            {isCurrentMonth && selectedWeek !== 'all' && (
+                                <>
+                                    <span>•</span>
+                                    <span>Selected Week</span>
+                                </>
+                            )}
+                        </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
-                        <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                        {/* Month Selector */}
+                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                             <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-800 text-white">
-                                <SelectValue placeholder="Select Week" />
+                                <SelectValue placeholder="Select Month" />
                             </SelectTrigger>
                             <SelectContent className="bg-gray-900 border-gray-800 text-white">
-                                <SelectItem value="all">All Time</SelectItem>
-                                {weekOptions.map(option => (
+                                {monthOptions.map(option => (
                                     <SelectItem key={option.value} value={option.value}>
                                         {option.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        {/* Week Selector - Only visible for Current Month */}
+                        {isCurrentMonth && (
+                            <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                                <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-800 text-white">
+                                    <SelectValue placeholder="Select Week" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                                    <SelectItem value="all">Current Month (All)</SelectItem>
+                                    {weekOptions.map(option => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+
+                        {/* Payment Filter */}
+                        <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                            <SelectTrigger className="w-full sm:w-[140px] bg-gray-900 border-gray-800 text-white">
+                                <SelectValue placeholder="Payment" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                                <SelectItem value="all">All Methods</SelectItem>
+                                <SelectItem value="cash">Cash</SelectItem>
+                                <SelectItem value="online">Online</SelectItem>
+                            </SelectContent>
+                        </Select>
+
                         <Button
                             onClick={handleDownloadExcel}
                             className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 h-10 text-sm"
@@ -135,8 +244,7 @@ export function SessionsTable({
                     <div className="w-16 h-16 mx-auto mb-4 bg-gray-900/50 rounded-full flex items-center justify-center">
                         <div className="text-gray-600 text-2xl">📊</div>
                     </div>
-                    <p className="text-gray-500">No data to display</p>
-                    <p className="text-gray-600 text-sm mt-1">Add customers to see the table view</p>
+                    <p className="text-gray-500">No data for this period</p>
                 </div>
             ) : (
                 <>
@@ -188,12 +296,27 @@ export function SessionsTable({
                                             <td className="p-4 text-center">
                                                 <div className={cn(
                                                     "inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold uppercase",
-                                                    entry.paymentMode === 'online'
-                                                        ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                                        : "bg-green-500/10 text-green-400 border border-green-500/20"
+                                                    entry.splitPayment
+                                                        ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                                        : entry.paymentMode === 'online'
+                                                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                                            : "bg-green-500/10 text-green-400 border border-green-500/20"
                                                 )}>
-                                                    {entry.paymentMode === 'online' ? <CreditCard className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
-                                                    {entry.paymentMode || 'cash'}
+                                                    {entry.splitPayment ? (
+                                                        <>
+                                                            <div className="flex gap-0.5">
+                                                                <Banknote className="w-3 h-3" />
+                                                                <span className="text-gray-500">/</span>
+                                                                <CreditCard className="w-3 h-3" />
+                                                            </div>
+                                                            Split
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            {entry.paymentMode === 'online' ? <CreditCard className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
+                                                            {entry.paymentMode || 'cash'}
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="p-4">
@@ -254,10 +377,16 @@ export function SessionsTable({
                                     <div className="bg-gray-800/50 rounded-lg p-2 flex flex-col items-center justify-center border border-gray-800">
                                         <div className="text-[10px] text-gray-500 uppercase">Paid</div>
                                         <div className="mt-1">
-                                            {entry.paymentMode === 'online'
-                                                ? <CreditCard className="w-4 h-4 text-blue-400" />
-                                                : <Banknote className="w-4 h-4 text-green-400" />
-                                            }
+                                            {entry.splitPayment ? (
+                                                <div className="flex gap-1">
+                                                    <Banknote className="w-4 h-4 text-green-400" />
+                                                    <CreditCard className="w-4 h-4 text-blue-400" />
+                                                </div>
+                                            ) : (
+                                                entry.paymentMode === 'online'
+                                                    ? <CreditCard className="w-4 h-4 text-blue-400" />
+                                                    : <Banknote className="w-4 h-4 text-green-400" />
+                                            )}
                                         </div>
                                     </div>
                                 </div>

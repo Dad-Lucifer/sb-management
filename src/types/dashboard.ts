@@ -20,6 +20,14 @@ export interface CustomerEntry {
 
     age?: number
     paymentMode?: 'online' | 'offline'
+
+
+    // Split Payment Fields
+    splitPayment?: {
+        cashAmount: number;
+        onlineAmount: number;
+    }
+
     screenNumber?: number
     // Pause functionality
     isPaused?: boolean

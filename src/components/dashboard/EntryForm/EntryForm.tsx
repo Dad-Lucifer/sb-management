@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion'
-import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, Monitor, ChevronDown, Plus, Minus, CreditCard, Banknote } from 'lucide-react'
+import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, ChevronDown, Plus, Minus, CreditCard, Banknote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SNACK_INVENTORY, ALL_SNACKS_MAP, getHourlyRate } from '@/constants/inventory'
+
+import { SNACK_INVENTORY, ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
 
 export interface EntryFormProps {
     customerName: string;
@@ -28,8 +28,6 @@ export interface EntryFormProps {
     setAge: (val: string) => void;
     paymentMode: 'online' | 'offline';
     setPaymentMode: (val: 'online' | 'offline') => void;
-    screenNumber: string;
-    setScreenNumber: (val: string) => void;
 }
 
 export function EntryForm({
@@ -51,9 +49,7 @@ export function EntryForm({
     age,
     setAge,
     paymentMode,
-    setPaymentMode,
-    screenNumber,
-    setScreenNumber
+    setPaymentMode
 }: EntryFormProps) {
     return (
         <div className="space-y-6">
@@ -74,7 +70,7 @@ export function EntryForm({
                         className="h-full bg-gradient-to-r from-red-500 to-yellow-500"
                         initial={{ width: "0%" }}
                         animate={{
-                            width: `${((customerName ? 10 : 0) + (phoneNumber ? 10 : 0) + (screenNumber ? 10 : 0) + (numberOfPeople ? 10 : 0) + (duration ? 10 : 0) + (age ? 10 : 0) + (Object.keys(selectedSnacks).length > 0 ? 20 : 0) + 20)}%`
+                            width: `${((customerName ? 10 : 0) + (phoneNumber ? 10 : 0) + (numberOfPeople ? 10 : 0) + (duration ? 10 : 0) + (age ? 10 : 0) + (Object.keys(selectedSnacks).length > 0 ? 20 : 0) + 20)}%`
                         }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
@@ -142,26 +138,7 @@ export function EntryForm({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="screenNumber" className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                            <Monitor className="w-4 h-4 text-red-500" />
-                            Screen Number
-                        </Label>
-                        <Select value={screenNumber} onValueChange={setScreenNumber}>
-                            <SelectTrigger className="h-12 bg-gray-900/50 border-gray-800 text-white data-[placeholder]:text-gray-600 rounded-lg focus:ring-0 focus:border-red-500 transition-all duration-300">
-                                <SelectValue placeholder="Select Screen" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-gray-900 border-gray-800 text-white">
-                                {[1, 2, 3, 4, 5, 6].map((num) => (
-                                    <SelectItem key={num} value={num.toString()} className="focus:bg-red-900/40 focus:text-white cursor-pointer">
-                                        Screen {num}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
+
 
                 <div className="space-y-2">
                     <Label htmlFor="numberOfPeople" className="text-gray-400 text-sm font-medium flex items-center gap-2">
@@ -369,7 +346,7 @@ export function EntryForm({
                     <div className="flex flex-row md:flex-col justify-between md:justify-end md:text-right md:space-y-1 border-t border-gray-800 md:border-t-0 pt-3 md:pt-0">
                         <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
                             <Zap className="w-3 h-3" />
-                            Gaming: <span className="text-gray-300">₹{((parseFloat(duration) || 0) * (parseInt(numberOfPeople) || 1) * getHourlyRate(parseInt(numberOfPeople) || 1)).toFixed(2)}</span>
+                            Gaming: <span className="text-gray-300">₹{calculateSessionPrice(parseFloat(duration) || 0, parseInt(numberOfPeople) || 1).toFixed(2)}</span>
                         </div>
                         <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
                             <Coffee className="w-3 h-3" />

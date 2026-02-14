@@ -8,6 +8,17 @@ export const getHourlyRate = (numberOfPeople: number): number => {
     return 50 // More than 2 people
 }
 
+export const calculateSessionPrice = (duration: number, numberOfPeople: number): number => {
+    const hours = Math.ceil(duration)
+    // "Minimum 1-Hour Billing Rule" & "Billing should always round up to the nearest 1-hour block"
+    // If duration is 0 (e.g. just started), maybe min 1 hour? Or 0?
+    // Usually if duration > 0, ceil gives 1+.
+    if (duration <= 0) return 0
+
+    const ratePerPerson = getHourlyRate(numberOfPeople)
+    return hours * numberOfPeople * ratePerPerson
+}
+
 
 export interface SnackItem {
     id: string;

@@ -164,6 +164,7 @@ function ActivityCard({
     // If paused, the "effective" elapsed time stops. 
     // Remaining = Duration - (Elapsed)
     // Elapsed = (isPaused ? pausedAt : now) - timestamp - totalPausedTime
+    // Elapsed = (isPaused ? pausedAt : now) - timestamp - totalPausedTime
 
     const isPaused = entry.isPaused
     const pausedAtTime = entry.pausedAt ? (entry.pausedAt instanceof Date ? entry.pausedAt.getTime() : new Date(entry.pausedAt).getTime()) : 0
@@ -261,8 +262,9 @@ function ActivityCard({
                             </span>
                         </div>
 
+
                         {/* Status Indicator Icon - Tighter positioning */}
-                        <div className="absolute -bottom-0.5 -right-0.5 scale-90 sm:scale-100">
+                        <div className="absolute -bottom-0.5 -right-0.5 scale-90 sm:scale-100 z-10">
                             {isExpired ? (
                                 <div className="bg-gray-800 p-1 rounded-full border border-gray-700">
                                     <Clock className="w-3 h-3 text-gray-500" />
@@ -331,51 +333,51 @@ function ActivityCard({
                             )}
                         </div>
 
-                        {/* ACTIONS (Pause/Resume & Delete) - visible on mobile/tablet too */}
-                        <div className="flex items-center gap-1 pl-0 sm:pl-2 sm:border-l sm:border-gray-800">
-                            {onPause && !isExpired && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        onPause(entry)
-                                    }}
-                                    className={cn(
-                                        "p-2 sm:p-1.5 rounded-lg transition-colors touch-manipulation",
-                                        isPaused ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-gray-800 hover:bg-gray-700 text-gray-300"
-                                    )}
-                                    title={isPaused ? "Resume Session" : "Pause Session"}
-                                >
-                                    {isPaused ? <Play className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> : <Pause className="w-4 h-4 sm:w-3.5 sm:h-3.5" />}
-                                </button>
-                            )}
-                            {onDelete && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        if (confirm("Are you sure you want to delete this session?")) {
-                                            onDelete(entry.id)
-                                        }
-                                    }}
-                                    className="p-2 sm:p-1.5 rounded-lg bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors touch-manipulation"
-                                    title="Delete Session"
-                                >
-                                    <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                                </button>
-                            )}
-                        </div>
+                    </div>
+
+                    {/* ACTIONS (Pause/Resume & Delete) - visible on mobile/tablet too */}
+                    <div className="flex items-center gap-1 pl-0 sm:pl-2 sm:border-l sm:border-gray-800">
+                        {onPause && !isExpired && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onPause(entry)
+                                }}
+                                className={cn(
+                                    "p-2 sm:p-1.5 rounded-lg transition-colors touch-manipulation",
+                                    isPaused ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-gray-800 hover:bg-gray-700 text-gray-300"
+                                )}
+                                title={isPaused ? "Resume Session" : "Pause Session"}
+                            >
+                                {isPaused ? <Play className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> : <Pause className="w-4 h-4 sm:w-3.5 sm:h-3.5" />}
+                            </button>
+                        )}
+                        {onDelete && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (confirm("Are you sure you want to delete this session?")) {
+                                        onDelete(entry.id)
+                                    }
+                                }}
+                                className="p-2 sm:p-1.5 rounded-lg bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors touch-manipulation"
+                                title="Delete Session"
+                            >
+                                <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                            </button>
+                        )}
                     </div>
                 </div>
-
-                {/* Progress Bar - ALWAYS VISIBLE ON MOBILE for utility */}
-                {!isExpired && (
-                    <div className="absolute bottom-0 left-0 h-[2px] sm:h-[2px] bg-gray-800 w-full">
-                        <div
-                            className={cn("h-full shadow-[0_0_10px_currentColor]", isWarning ? "bg-yellow-500 text-yellow-500" : "bg-red-500 text-red-500")}
-                            style={{ width: `${progressPercent}%` }}
-                        />
-                    </div>
-                )}
             </div>
+            {/* Progress Bar - ALWAYS VISIBLE ON MOBILE for utility */}
+            {!isExpired && (
+                <div className="absolute bottom-0 left-0 h-[2px] sm:h-[2px] bg-gray-800 w-full">
+                    <div
+                        className={cn("h-full shadow-[0_0_10px_currentColor]", isWarning ? "bg-yellow-500 text-yellow-500" : "bg-red-500 text-red-500")}
+                        style={{ width: `${progressPercent}%` }}
+                    />
+                </div>
+            )}
         </motion.div>
     )
 }

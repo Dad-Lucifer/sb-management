@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     X, User, Phone, Clock, Plus, Minus, ShoppingCart,
-    Crown, Check, Coffee, CreditCard, Banknote
+    Crown, Check, Coffee, CreditCard, Banknote, Activity
 } from 'lucide-react'
+import { useMemo } from 'react'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
-import { SNACK_INVENTORY, ALL_SNACKS_MAP, getHourlyRate } from '@/constants/inventory'
+import { SNACK_INVENTORY, ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +17,7 @@ export interface EntryDetailsDialogProps {
     isOpen: boolean
     onClose: () => void
     onSave: (duration: number, numberOfPeople: number, snacks: SnackOrder[]) => void
+    onSplitPayment?: (entry: CustomerEntry, cashAmount: number, onlineAmount: number) => Promise<void>
     readOnly?: boolean
 }
 
@@ -24,6 +26,7 @@ export function EntryDetailsDialog({
     isOpen,
     onClose,
     onSave,
+    onSplitPayment,
     readOnly = false
 }: EntryDetailsDialogProps) {
     const [editDuration, setEditDuration] = useState('')
@@ -32,6 +35,44 @@ export function EntryDetailsDialog({
     const [isSuccess, setIsSuccess] = useState(false)
     const [activeCategory, setActiveCategory] = useState<string>(Object.keys(SNACK_INVENTORY)[0] || '')
     const [activeSection, setActiveSection] = useState<'session' | 'supply'>('session')
+
+    // Split Payment State
+    const [splitAmount, setSplitAmount] = useState('')
+    const [isSubmittingSplit, setIsSubmittingSplit] = useState(false)
+
+    // Split Logic
+    const currentMode = entry?.paymentMode || 'offline'
+    const splitTargetMode = currentMode === 'online' ? 'cash' : 'online'
+    const splitTargetLabel = splitTargetMode === 'cash' ? 'Cash' : 'Online'
+
+    const calculatedSplit = useMemo(() => {
+        if (!entry) return null
+        const amount = parseFloat(splitAmount)
+        if (isNaN(amount)) return null
+
+        const inputVal = Math.max(0, Math.min(amount, entry.subTotal))
+        const remainingVal = entry.subTotal - inputVal
+
+        if (currentMode === 'online') {
+            return { cash: inputVal, online: remainingVal }
+        } else {
+            return { online: inputVal, cash: remainingVal }
+        }
+    }, [splitAmount, entry, currentMode])
+
+    const isValidSplit = entry && calculatedSplit && parseFloat(splitAmount) > 0 && parseFloat(splitAmount) < entry.subTotal
+
+    const handleSplitSubmit = async () => {
+        if (!isValidSplit || !onSplitPayment || !calculatedSplit || !entry) return
+        setIsSubmittingSplit(true)
+        try {
+            await onSplitPayment(entry, calculatedSplit.cash, calculatedSplit.online)
+            setSplitAmount('')
+            onClose()
+        } finally {
+            setIsSubmittingSplit(false)
+        }
+    }
 
     useEffect(() => {
         if (entry) {
@@ -71,7 +112,7 @@ export function EntryDetailsDialog({
         const durationNum = parseFloat(editDuration) || 0
         const peopleNum = parseInt(editNumberOfPeople) || 1
         const snacksPrice = editSnacks.reduce((total, snack) => total + (snack.totalPrice || 0), 0)
-        return (durationNum * peopleNum * getHourlyRate(peopleNum)) + snacksPrice
+        return calculateSessionPrice(durationNum, peopleNum) + snacksPrice
     }
 
     const handleSubmit = async () => {
@@ -217,6 +258,61 @@ export function EntryDetailsDialog({
                                                     <span className="text-xl font-bold text-white">{editNumberOfPeople} People</span>
                                                 </div>
                                             </div>
+
+                                            {/* Split Payment Card - Only if not already split */}
+                                            {onSplitPayment && !entry.splitPayment && !readOnly && (
+                                                <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Split Payment</label>
+                                                        <span className="text-xs text-blue-400 font-mono">Total: ₹{entry.subTotal}</span>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <div className="relative">
+                                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">₹</div>
+                                                            <input
+                                                                type="number"
+                                                                value={splitAmount}
+                                                                onChange={(e) => setSplitAmount(e.target.value)}
+                                                                placeholder={`Enter ${splitTargetLabel} Amount`}
+                                                                className="w-full bg-black/50 border border-gray-700 rounded-xl py-3 pl-7 pr-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-gray-600"
+                                                                inputMode="decimal"
+                                                            />
+                                                        </div>
+
+                                                        {calculatedSplit && (
+                                                            <div className="flex items-center justify-between text-xs px-1">
+                                                                <div className="flex items-center gap-1.5 text-green-400">
+                                                                    <Banknote className="w-3 h-3" />
+                                                                    <span>₹{calculatedSplit.cash.toFixed(0)}</span>
+                                                                </div>
+                                                                <div className="text-gray-600 font-mono">/</div>
+                                                                <div className="flex items-center gap-1.5 text-blue-400">
+                                                                    <CreditCard className="w-3 h-3" />
+                                                                    <span>₹{calculatedSplit.online.toFixed(0)}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <button
+                                                            onClick={handleSplitSubmit}
+                                                            disabled={!isValidSplit || isSubmittingSplit}
+                                                            className={cn(
+                                                                "w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                                                                isValidSplit && !isSubmittingSplit
+                                                                    ? "bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-500/20"
+                                                                    : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                                                            )}
+                                                        >
+                                                            {isSubmittingSplit ? (
+                                                                <Activity className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                "Confirm Split"
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

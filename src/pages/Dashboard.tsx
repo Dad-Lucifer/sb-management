@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { format, subDays } from 'date-fns'
+import { format, subDays, isSameMonth } from 'date-fns'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
@@ -7,7 +7,7 @@ import { checkAndArchiveOldData } from '@/lib/archiver'
 import { sendSessionEndSMS } from '@/lib/sms'
 import * as XLSX from 'xlsx'
 
-import { ALL_SNACKS_MAP, getHourlyRate } from '@/constants/inventory'
+import { ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
 import { DashboardHeader } from '@/components/dashboard/Header/DashboardHeader'
 import { EntryForm } from '@/components/dashboard/EntryForm/EntryForm'
@@ -24,7 +24,6 @@ export default function GamingCafeDashboard() {
     const [duration, setDuration] = useState('')
     const [age, setAge] = useState('')
     const [paymentMode, setPaymentMode] = useState<'online' | 'offline'>('offline')
-    const [screenNumber, setScreenNumber] = useState<string>('')
     // New State for Structured Snacks
     const [selectedSnacks, setSelectedSnacks] = useState<Record<string, number>>({})
     const [stockData, setStockData] = useState<Record<string, number>>({})
@@ -284,7 +283,7 @@ export default function GamingCafeDashboard() {
             }
         })
 
-        return (durationNum * peopleNum * getHourlyRate(peopleNum)) + snacksPrice
+        return calculateSessionPrice(durationNum, peopleNum) + snacksPrice
     }
 
 
@@ -306,7 +305,7 @@ export default function GamingCafeDashboard() {
 
 
     const handleProceed = async () => {
-        if (!customerName || !phoneNumber || !duration || !screenNumber) {
+        if (!customerName || !phoneNumber || !duration) {
             triggerErrorAnimation()
             return
         }
@@ -354,7 +353,6 @@ export default function GamingCafeDashboard() {
                 isRenewed: false,
                 age: parseInt(age) || 0,
                 paymentMode: paymentMode,
-                screenNumber: parseInt(screenNumber) || 0
             })
 
             setTimeout(() => {
@@ -364,7 +362,6 @@ export default function GamingCafeDashboard() {
                 setDuration('')
                 setAge('')
                 setPaymentMode('offline')
-                setScreenNumber('')
                 setSelectedSnacks({})
                 setIsAnimating(false)
                 toast({
@@ -407,7 +404,7 @@ export default function GamingCafeDashboard() {
 
         try {
             const snacksPrice = snacks.reduce((total, snack) => total + (snack.totalPrice || 0), 0)
-            const subTotal = (newDuration * newPeople * getHourlyRate(newPeople)) + snacksPrice
+            const subTotal = calculateSessionPrice(newDuration, newPeople) + snacksPrice
 
             const entryRef = doc(db, "entries", selectedEntry.id)
             await updateDoc(entryRef, {
@@ -577,9 +574,12 @@ export default function GamingCafeDashboard() {
         return endTime <= currentTime.getTime()
     }
 
-    // Use lifetime data (recentEntries) for Table View, otherwise use today's data (Dashboard & Analytics)
+    // Use Current Month data for Table View, otherwise use today's data (Dashboard & Analytics)
     // AND filter for only completed sessions for stats calculations
-    const statsEntries = ((activeTab === 'table') ? recentEntries : todayEntries).filter(isSessionCompleted)
+    const statsEntries = ((activeTab === 'table')
+        ? recentEntries.filter(entry => isSameMonth(new Date(entry.timestamp), currentTime))
+        : todayEntries
+    ).filter(isSessionCompleted)
 
     const totalRevenue = statsEntries.reduce((sum, entry) => sum + entry.subTotal, 0)
     const totalCustomers = statsEntries.length
@@ -603,12 +603,19 @@ export default function GamingCafeDashboard() {
 
         const tRevenue = completedEntries.reduce((sum, entry) => sum + entry.subTotal, 0)
         const tCustomers = completedEntries.length
-        const tCash = completedEntries
-            .filter(e => e.paymentMode === 'offline' || !e.paymentMode)
-            .reduce((sum, entry) => sum + entry.subTotal, 0)
-        const tOnline = completedEntries
-            .filter(e => e.paymentMode === 'online')
-            .reduce((sum, entry) => sum + entry.subTotal, 0)
+        let tCash = 0
+        let tOnline = 0
+
+        completedEntries.forEach(entry => {
+            if (entry.splitPayment) {
+                tCash += entry.splitPayment.cashAmount
+                tOnline += entry.splitPayment.onlineAmount
+            } else if (entry.paymentMode === 'online') {
+                tOnline += entry.subTotal
+            } else {
+                tCash += entry.subTotal
+            }
+        })
 
         const sData = getSnacksDistribution(completedEntries)
         const hStats = getHourlyDistribution(completedEntries)
@@ -754,8 +761,6 @@ export default function GamingCafeDashboard() {
                                     setAge={setAge}
                                     paymentMode={paymentMode}
                                     setPaymentMode={setPaymentMode}
-                                    screenNumber={screenNumber}
-                                    setScreenNumber={setScreenNumber}
                                 />
 
                                 <RecentActivity
@@ -795,6 +800,29 @@ export default function GamingCafeDashboard() {
                 onClose={closeEntryDetails}
                 onSave={saveEntryChanges}
                 readOnly={activeTab === 'table'}
+                onSplitPayment={async (entry, cash, online) => {
+                    try {
+                        const entryRef = doc(db, "entries", entry.id)
+                        await updateDoc(entryRef, {
+                            splitPayment: {
+                                cashAmount: cash,
+                                onlineAmount: online
+                            }
+                        })
+                        toast({
+                            title: "Payment Split",
+                            description: `Cash: ₹${cash} | Online: ₹${online}`,
+                            className: "bg-green-600 border-green-500 text-white"
+                        })
+                    } catch (error) {
+                        console.error("Error splitting payment:", error)
+                        toast({
+                            variant: "destructive",
+                            title: "Error",
+                            description: "Failed to update split payment."
+                        })
+                    }
+                }}
             />
         </div>
     )
