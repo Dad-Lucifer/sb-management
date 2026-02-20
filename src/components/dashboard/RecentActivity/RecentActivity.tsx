@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Clock, Coffee, Trophy, Zap, Ghost,
@@ -6,6 +7,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CustomerEntry } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
+import MoneyAlert from '@/components/money-alert' // Imported MoneyAlert
 
 export interface RecentActivityProps {
     recentEntries: CustomerEntry[];
@@ -27,6 +29,10 @@ export function RecentActivity({
     onPause
 }: RecentActivityProps) {
 
+    // State for MoneyAlert
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
+    const [selectedEntry, setSelectedEntry] = useState<CustomerEntry | null>(null);
+
     const filteredEntries = recentEntries.filter(entry => {
         const startTime = new Date(entry.timestamp).getTime()
         const durationMs = entry.duration * 60 * 60 * 1000
@@ -40,74 +46,108 @@ export function RecentActivity({
         return end > currentTime.getTime();
     }).length
 
+    // Handler to intercept clicks
+    const handleCardClick = (entry: CustomerEntry) => {
+        const startTime = new Date(entry.timestamp).getTime()
+        const durationMs = entry.duration * 60 * 60 * 1000
+        const endTime = startTime + durationMs
+        const isExpired = endTime <= currentTime.getTime()
+
+        // If session is ongoing, trigger alert
+        if (!isExpired) {
+            setSelectedEntry(entry);
+            setIsAlertOpen(true);
+        } else {
+            // If expired (history), just open details directly
+            openEntryDetails(entry);
+        }
+    }
+
+    // Handler for alert confirmation
+    const handleAlertClose = () => {
+        setIsAlertOpen(false);
+        if (selectedEntry) {
+            openEntryDetails(selectedEntry);
+            setSelectedEntry(null);
+        }
+    }
+
     return (
-        <div className="flex flex-col h-full min-h-0 space-y-3">
-            {/* Header - Compact for Mobile, Flex for Tablet/Desktop */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between px-2 sm:px-1 gap-3 sm:gap-0 shrink-0">
-                <div className="flex flex-col min-w-0">
-                    <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent flex items-center gap-2 truncate">
-                        Station Feed
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                            className="shrink-0"
-                        >
-                            <Activity className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
-                        </motion.div>
-                    </h2>
-                    <p className="text-gray-500 text-[11px] sm:text-xs uppercase tracking-widest font-medium">Live Monitoring</p>
-                </div>
+        <>
+            {/* Money Alert - Rendered outside the main container to ensure full screen coverage */}
+            <MoneyAlert 
+                isOpen={isAlertOpen} 
+                onClose={handleAlertClose} 
+            />
 
-                {/* Tabs - Larger Touch Targets */}
-                <div className="self-start sm:self-auto flex items-center gap-1 p-1 rounded-full bg-gray-900/50 border border-gray-800 backdrop-blur-md w-full sm:w-auto overflow-x-auto no-scrollbar">
-                    <TabButton
-                        active={activityTab === 'ongoing'}
-                        onClick={() => setActivityTab('ongoing')}
-                        icon={Zap}
-                        label="Live"
-                        count={activeCount}
-                    />
-                    <TabButton
-                        active={activityTab === 'completed'}
-                        onClick={() => setActivityTab('completed')}
-                        icon={History}
-                        label="History"
-                    />
-                </div>
-            </div>
-
-            {/* Main Content Area - Critical fix: min-h-0 for scrolling */}
-            <div className="flex-1 relative min-h-0 rounded-3xl overflow-hidden bg-gradient-to-b from-gray-900/40 to-black/40 border border-gray-800/50 backdrop-blur-xl shadow-2xl flex flex-col">
-                {/* Background Decor - Reduced blur for performance */}
-                <div className="absolute top-0 right-0 p-20 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 left-0 p-20 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
-
-                <ScrollArea className="flex-1 w-full h-full">
-                    <div className="p-2 sm:p-3 md:p-4 space-y-2 pb-20 sm:pb-24 md:space-y-3">
-                        <AnimatePresence mode='popLayout'>
-                            {filteredEntries.length === 0 ? (
-                                <EmptyState tab={activityTab} />
-                            ) : (
-                                filteredEntries.map((entry, index) => (
-                                    <ActivityCard
-                                        key={entry.id}
-                                        entry={entry}
-                                        index={index}
-                                        currentTime={currentTime}
-                                        onClick={() => openEntryDetails(entry)}
-                                        onDelete={onDelete}
-                                        onPause={onPause}
-                                    />
-                                ))
-                            )}
-                        </AnimatePresence>
+            <div className="flex flex-col h-full min-h-0 space-y-3">
+                {/* Header - Compact for Mobile, Flex for Tablet/Desktop */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-2 sm:px-1 gap-3 sm:gap-0 shrink-0">
+                    <div className="flex flex-col min-w-0">
+                        <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent flex items-center gap-2 truncate">
+                            Station Feed
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                                className="shrink-0"
+                            >
+                                <Activity className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
+                            </motion.div>
+                        </h2>
+                        <p className="text-gray-500 text-[11px] sm:text-xs uppercase tracking-widest font-medium">Live Monitoring</p>
                     </div>
-                </ScrollArea>
 
-                {/* Mobile bottom fade - Adjusted for denser content */}
-                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/40 to-transparent pointer-events-none md:hidden" />
+                    {/* Tabs - Larger Touch Targets */}
+                    <div className="self-start sm:self-auto flex items-center gap-1 p-1 rounded-full bg-gray-900/50 border border-gray-800 backdrop-blur-md w-full sm:w-auto overflow-x-auto no-scrollbar">
+                        <TabButton
+                            active={activityTab === 'ongoing'}
+                            onClick={() => setActivityTab('ongoing')}
+                            icon={Zap}
+                            label="Live"
+                            count={activeCount}
+                        />
+                        <TabButton
+                            active={activityTab === 'completed'}
+                            onClick={() => setActivityTab('completed')}
+                            icon={History}
+                            label="History"
+                        />
+                    </div>
+                </div>
+
+                {/* Main Content Area - Critical fix: min-h-0 for scrolling */}
+                <div className="flex-1 relative min-h-0 rounded-3xl overflow-hidden bg-gradient-to-b from-gray-900/40 to-black/40 border border-gray-800/50 backdrop-blur-xl shadow-2xl flex flex-col">
+                    {/* Background Decor - Reduced blur for performance */}
+                    <div className="absolute top-0 right-0 p-20 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 p-20 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                    <ScrollArea className="flex-1 w-full h-full">
+                        <div className="p-2 sm:p-3 md:p-4 space-y-2 pb-20 sm:pb-24 md:space-y-3">
+                            <AnimatePresence mode='popLayout'>
+                                {filteredEntries.length === 0 ? (
+                                    <EmptyState tab={activityTab} />
+                                ) : (
+                                    filteredEntries.map((entry, index) => (
+                                        <ActivityCard
+                                            key={entry.id}
+                                            entry={entry}
+                                            index={index}
+                                            currentTime={currentTime}
+                                            onClick={() => handleCardClick(entry)}
+                                            onDelete={onDelete}
+                                            onPause={onPause}
+                                        />
+                                    ))
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </ScrollArea>
+
+                    {/* Mobile bottom fade - Adjusted for denser content */}
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/40 to-transparent pointer-events-none md:hidden" />
+                </div>
             </div>
-        </div>
+        </>
     )
 }
 
@@ -390,7 +430,7 @@ function EmptyState({ tab }: { tab: string }) {
             className="flex flex-col items-center justify-center py-16 text-center px-4"
         >
             <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-900/50 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-4 sm:mb-6 relative group overflow-hidden border border-gray-800">
-                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity:100 transition-opacity duration-700" />
                 {tab === 'ongoing' ? (
                     <motion.div
                         animate={{ y: [0, -5, 0] }}

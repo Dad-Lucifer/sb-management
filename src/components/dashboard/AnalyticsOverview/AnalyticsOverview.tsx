@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 import { COLORS } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
+import MoneyAlert from '@/components/money-alert' // Imported the MoneyAlert component
 
 export interface DailyAnalyticsData {
     date: Date;
@@ -37,6 +38,10 @@ export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: Ana
     const [activeTab, setActiveTab] = useState<'revenue' | 'inventory' | 'traffic' | 'stock'>('revenue')
     const [selectedDayIndex, setSelectedDayIndex] = useState(0)
 
+    // State for MoneyAlert
+    const [isMoneyAlertOpen, setIsMoneyAlertOpen] = useState(false);
+    const [pendingDayIndex, setPendingDayIndex] = useState<number | null>(null);
+
     const currentData = historyData[selectedDayIndex] || {
         snacksData: [],
         revenueData: [],
@@ -55,8 +60,6 @@ export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: Ana
         return peak.hour
     }, [hourlyData])
 
-
-
     const topSellingSnack = useMemo(() => {
         if (snacksData.length === 0) return 'None'
         const top = snacksData.reduce((max, curr) =>
@@ -67,326 +70,351 @@ export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: Ana
 
     const hasRevenue = useMemo(() => revenueData.some(d => d.revenue > 0), [revenueData])
 
+    // Handler for Day Filter Click
+    const handleDayClick = (idx: number) => {
+        if (idx !== selectedDayIndex) {
+            setPendingDayIndex(idx);
+            setIsMoneyAlertOpen(true);
+        }
+    };
+
+    // Handler for Alert Close (Confirmation)
+    const handleAlertClose = () => {
+        setIsMoneyAlertOpen(false);
+        if (pendingDayIndex !== null) {
+            setSelectedDayIndex(pendingDayIndex);
+            setPendingDayIndex(null);
+        }
+    };
+
     return (
-        <div className="space-y-4 md:space-y-6 h-full flex flex-col">
-            {/* Header Section */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 px-1">
-                <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3 tracking-tight">
-                        Command Center
-                        <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                        </span>
-                    </h2>
-                    <p className="text-gray-500 text-[10px] md:text-xs font-medium uppercase tracking-widest mt-1">Live Performance Telemetry</p>
-                </div>
+        <>
+            {/* Money Alert Component - Rendered outside to ensure full screen coverage */}
+            <MoneyAlert 
+                isOpen={isMoneyAlertOpen} 
+                onClose={handleAlertClose} 
+            />
 
-                <div className="flex flex-col md:flex-row gap-3 items-start md:items-center self-start xl:self-auto w-full xl:w-auto">
-                    {/* Date Switcher */}
-                    <div className="flex p-1 bg-gray-900/80 rounded-xl border border-gray-800 backdrop-blur-md overflow-x-auto max-w-full no-scrollbar">
-                        {historyData.map((day, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setSelectedDayIndex(idx)}
-                                className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
-                                    selectedDayIndex === idx
-                                        ? "bg-gray-800 text-white shadow-sm ring-1 ring-white/10"
-                                        : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
-                                )}
-                            >
-                                <Calendar className={cn("w-3 h-3", selectedDayIndex === idx ? "text-blue-400" : "text-gray-600")} />
-                                {day.label}
-                            </button>
-                        ))}
+            <div className="space-y-4 md:space-y-6 h-full flex flex-col">
+                {/* Header Section */}
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 px-1">
+                    <div>
+                        <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3 tracking-tight">
+                            Command Center
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                            </span>
+                        </h2>
+                        <p className="text-gray-500 text-[10px] md:text-xs font-medium uppercase tracking-widest mt-1">Live Performance Telemetry</p>
                     </div>
 
-                    {/* Minimal Tab Switcher */}
-                    <div className="flex p-1 bg-gray-900/80 rounded-full border border-gray-800 backdrop-blur-md overflow-x-auto max-w-full no-scrollbar">
-                        <TabButton
-                            active={activeTab === 'revenue'}
-                            icon={DollarSign}
-                            label="Revenue"
-                            onClick={() => setActiveTab('revenue')}
-                        />
-                        <TabButton
-                            active={activeTab === 'inventory'}
-                            icon={PieChartIcon}
-                            label="Inventory"
-                            onClick={() => setActiveTab('inventory')}
-                        />
-                        <TabButton
-                            active={activeTab === 'traffic'}
-                            icon={Clock}
-                            label="Traffic"
-                            onClick={() => setActiveTab('traffic')}
-                        />
-                        <TabButton
-                            active={activeTab === 'stock'}
-                            icon={Box}
-                            label="Stock"
-                            onClick={() => setActiveTab('stock')}
-                        />
+                    <div className="flex flex-col md:flex-row gap-3 items-start md:items-center self-start xl:self-auto w-full xl:w-auto">
+                        {/* Date Switcher */}
+                        <div className="flex p-1 bg-gray-900/80 rounded-xl border border-gray-800 backdrop-blur-md overflow-x-auto max-w-full no-scrollbar">
+                            {historyData.map((day, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleDayClick(idx)}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
+                                        selectedDayIndex === idx
+                                            ? "bg-gray-800 text-white shadow-sm ring-1 ring-white/10"
+                                            : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+                                    )}
+                                >
+                                    <Calendar className={cn("w-3 h-3", selectedDayIndex === idx ? "text-blue-400" : "text-gray-600")} />
+                                    {day.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Minimal Tab Switcher */}
+                        <div className="flex p-1 bg-gray-900/80 rounded-full border border-gray-800 backdrop-blur-md overflow-x-auto max-w-full no-scrollbar">
+                            <TabButton
+                                active={activeTab === 'revenue'}
+                                icon={DollarSign}
+                                label="Revenue"
+                                onClick={() => setActiveTab('revenue')}
+                            />
+                            <TabButton
+                                active={activeTab === 'inventory'}
+                                icon={PieChartIcon}
+                                label="Inventory"
+                                onClick={() => setActiveTab('inventory')}
+                            />
+                            <TabButton
+                                active={activeTab === 'traffic'}
+                                icon={Clock}
+                                label="Traffic"
+                                onClick={() => setActiveTab('traffic')}
+                            />
+                            <TabButton
+                                active={activeTab === 'stock'}
+                                icon={Box}
+                                label="Stock"
+                                onClick={() => setActiveTab('stock')}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                <StatCard
-                    label="Total Revenue"
-                    value={`₹${overallStats.totalRevenue.toLocaleString()}`}
-                    icon={TrendingUp}
-                    color="text-green-400"
-                    gradient="from-green-500/20 to-green-900/5"
-                    borderColor="border-green-500/20"
-                />
-                <StatCard
-                    label="Cash Payment"
-                    value={`₹${overallStats.totalCash.toLocaleString()}`}
-                    icon={Banknote}
-                    color="text-emerald-400"
-                    gradient="from-emerald-500/20 to-emerald-900/5"
-                    borderColor="border-emerald-500/20"
-                />
-                <StatCard
-                    label="Online Payment"
-                    value={`₹${overallStats.totalOnline.toLocaleString()}`}
-                    icon={CreditCard}
-                    color="text-cyan-400"
-                    gradient="from-cyan-500/20 to-cyan-900/5"
-                    borderColor="border-cyan-500/20"
-                />
-                <StatCard
-                    label="Total Guests"
-                    value={overallStats.totalCustomers.toString()}
-                    icon={Users}
-                    color="text-blue-400"
-                    gradient="from-blue-500/20 to-blue-900/5"
-                    borderColor="border-blue-500/20"
-                />
-                <StatCard
-                    label="Peak Hour"
-                    value={peakHour}
-                    icon={Zap}
-                    color="text-yellow-400"
-                    gradient="from-yellow-500/20 to-yellow-900/5"
-                    borderColor="border-yellow-500/20"
-                />
-                <StatCard
-                    label="Top Item"
-                    value={topSellingSnack}
-                    icon={Activity}
-                    color="text-purple-400"
-                    gradient="from-purple-500/20 to-purple-900/5"
-                    borderColor="border-purple-500/20"
-                />
-            </div>
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                    <StatCard
+                        label="Total Revenue"
+                        value={`₹${overallStats.totalRevenue.toLocaleString()}`}
+                        icon={TrendingUp}
+                        color="text-green-400"
+                        gradient="from-green-500/20 to-green-900/5"
+                        borderColor="border-green-500/20"
+                    />
+                    <StatCard
+                        label="Cash Payment"
+                        value={`₹${overallStats.totalCash.toLocaleString()}`}
+                        icon={Banknote}
+                        color="text-emerald-400"
+                        gradient="from-emerald-500/20 to-emerald-900/5"
+                        borderColor="border-emerald-500/20"
+                    />
+                    <StatCard
+                        label="Online Payment"
+                        value={`₹${overallStats.totalOnline.toLocaleString()}`}
+                        icon={CreditCard}
+                        color="text-cyan-400"
+                        gradient="from-cyan-500/20 to-cyan-900/5"
+                        borderColor="border-cyan-500/20"
+                    />
+                    <StatCard
+                        label="Total Guests"
+                        value={overallStats.totalCustomers.toString()}
+                        icon={Users}
+                        color="text-blue-400"
+                        gradient="from-blue-500/20 to-blue-900/5"
+                        borderColor="border-blue-500/20"
+                    />
+                    <StatCard
+                        label="Peak Hour"
+                        value={peakHour}
+                        icon={Zap}
+                        color="text-yellow-400"
+                        gradient="from-yellow-500/20 to-yellow-900/5"
+                        borderColor="border-yellow-500/20"
+                    />
+                    <StatCard
+                        label="Top Item"
+                        value={topSellingSnack}
+                        icon={Activity}
+                        color="text-purple-400"
+                        gradient="from-purple-500/20 to-purple-900/5"
+                        borderColor="border-purple-500/20"
+                    />
+                </div>
 
-            {/* Main Visualizer Area */}
-            <div className={cn(
-                "bg-gradient-to-b from-gray-900/50 to-black/50 rounded-2xl md:rounded-3xl border border-gray-800/50 backdrop-blur-xl relative overflow-hidden flex flex-col",
-                activeTab === 'stock' ? "h-[600px] md:h-[600px]" : "h-[400px] md:h-[500px]"
-            )}>
-                {/* Background Glows */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
+                {/* Main Visualizer Area */}
+                <div className={cn(
+                    "bg-gradient-to-b from-gray-900/50 to-black/50 rounded-2xl md:rounded-3xl border border-gray-800/50 backdrop-blur-xl relative overflow-hidden flex flex-col",
+                    activeTab === 'stock' ? "h-[600px] md:h-[600px]" : "h-[400px] md:h-[500px]"
+                )}>
+                    {/* Background Glows */}
+                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
+                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
 
-                <div className="flex-1 p-4 md:p-6 relative z-10 min-h-0">
-                    <AnimatePresence mode="wait">
-                        {activeTab === 'revenue' && (
-                            <motion.div
-                                key="revenue"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 1.05 }}
-                                transition={{ duration: 0.3 }}
-                                className="h-full flex flex-col"
-                            >
-                                <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
-                                        <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
-                                        Financial Growth
-                                    </h3>
-                                </div>
-                                <div className="flex-1 w-full h-full min-h-0">
-                                    {hasRevenue ? (
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                <defs>
-                                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
-                                                        <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                                                <XAxis dataKey="date" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
-                                                <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
-                                                <Tooltip content={<CustomTooltip />} />
-                                                <Area type="monotone" dataKey="revenue" stroke="#eab308" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    ) : <NoDataState />}
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {activeTab === 'inventory' && (
-                            <motion.div
-                                key="inventory"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 1.05 }}
-                                transition={{ duration: 0.3 }}
-                                className="h-full flex flex-col"
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
-                                        <PieChartIcon className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                                        Inventory Intelligence
-                                    </h3>
-                                </div>
-
-                                {snacksData.length > 0 ? (
-                                    <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-hidden">
-                                        {/* Chart Side */}
-                                        <div className="relative flex items-center justify-center h-[200px] sm:h-[300px] lg:h-auto shrink-0 lg:shrink">
+                    <div className="flex-1 p-4 md:p-6 relative z-10 min-h-0">
+                        <AnimatePresence mode="wait">
+                            {activeTab === 'revenue' && (
+                                <motion.div
+                                    key="revenue"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 1.05 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="h-full flex flex-col"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                                            <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                                            Financial Growth
+                                        </h3>
+                                    </div>
+                                    <div className="flex-1 w-full h-full min-h-0">
+                                        {hasRevenue ? (
                                             <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={snacksData}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={60}
-                                                        outerRadius={80}
-                                                        paddingAngle={5}
-                                                        dataKey="value"
-                                                    >
-                                                        {snacksData.map((_, index) => (
-                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
-                                                        ))}
-                                                    </Pie>
+                                                <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
+                                                            <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                                                    <XAxis dataKey="date" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
+                                                    <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
                                                     <Tooltip content={<CustomTooltip />} />
-                                                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-white text-2xl md:text-3xl font-black">
-                                                        {snacksData.reduce((a, b) => a + b.value, 0)}
-                                                    </text>
-                                                    <text x="50%" y="60%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-[10px] uppercase tracking-widest font-bold">
-                                                        Sold
-                                                    </text>
-                                                </PieChart>
+                                                    <Area type="monotone" dataKey="revenue" stroke="#eab308" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                                </AreaChart>
                                             </ResponsiveContainer>
-                                        </div>
+                                        ) : <NoDataState />}
+                                    </div>
+                                </motion.div>
+                            )}
 
-                                        {/* Leaderboard Side */}
-                                        <div className="overflow-y-auto pr-2 custom-scrollbar lg:max-h-full h-full pb-4">
-                                            <h4 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2 sticky top-0 bg-[#0c0c0c] py-2 z-10 backdrop-blur-sm bg-opacity-90">
-                                                <Trophy className="w-3 h-3 text-yellow-500" /> Top Movers
-                                            </h4>
-                                            <div className="space-y-2 md:space-y-3">
-                                                {[...snacksData].sort((a, b) => b.value - a.value).map((item, index) => {
-                                                    const total = snacksData.reduce((acc, curr) => acc + curr.value, 0);
-                                                    return (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, x: 20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ delay: index * 0.05 }}
-                                                            key={item.name}
-                                                            className="bg-gray-900/40 rounded-xl p-2 md:p-3 flex items-center justify-between group hover:bg-gray-800 transition-all duration-300 border border-gray-800/50 hover:border-purple-500/30"
+                            {activeTab === 'inventory' && (
+                                <motion.div
+                                    key="inventory"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 1.05 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="h-full flex flex-col"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                                            <PieChartIcon className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                                            Inventory Intelligence
+                                        </h3>
+                                    </div>
+
+                                    {snacksData.length > 0 ? (
+                                        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-hidden">
+                                            {/* Chart Side */}
+                                            <div className="relative flex items-center justify-center h-[200px] sm:h-[300px] lg:h-auto shrink-0 lg:shrink">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={snacksData}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            innerRadius={60}
+                                                            outerRadius={80}
+                                                            paddingAngle={5}
+                                                            dataKey="value"
                                                         >
-                                                            <div className="flex items-center gap-3 md:gap-4">
-                                                                <div className={cn(
-                                                                    "w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-[10px] md:text-xs font-bold shadow-lg transition-transform group-hover:scale-110",
-                                                                    index === 0 ? "bg-gradient-to-br from-yellow-400 to-yellow-600 text-white" :
-                                                                        index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" :
-                                                                            index === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" :
-                                                                                "bg-gray-800 text-gray-400"
-                                                                )}>
-                                                                    {index === 0 ? <Trophy className="w-3 h-3 md:w-4 md:h-4" /> :
-                                                                        index < 3 ? <Flame className="w-3 h-3 md:w-4 md:h-4" /> :
-                                                                            <span>#{index + 1}</span>}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-xs md:text-sm font-bold text-gray-200 group-hover:text-white transition-colors">{item.name}</p>
-                                                                    <div className="w-24 md:w-32 h-1 md:h-1.5 bg-gray-800 rounded-full mt-1.5 md:mt-2 overflow-hidden">
-                                                                        <div
-                                                                            className="h-full rounded-full transition-all duration-1000 ease-out"
-                                                                            style={{
-                                                                                width: `${(item.value / total) * 100}%`,
-                                                                                backgroundColor: COLORS[index % COLORS.length]
-                                                                            }}
-                                                                        />
+                                                            {snacksData.map((_, index) => (
+                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip content={<CustomTooltip />} />
+                                                        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-white text-2xl md:text-3xl font-black">
+                                                            {snacksData.reduce((a, b) => a + b.value, 0)}
+                                                        </text>
+                                                        <text x="50%" y="60%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-[10px] uppercase tracking-widest font-bold">
+                                                            Sold
+                                                        </text>
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+
+                                            {/* Leaderboard Side */}
+                                            <div className="overflow-y-auto pr-2 custom-scrollbar lg:max-h-full h-full pb-4">
+                                                <h4 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2 sticky top-0 bg-[#0c0c0c] py-2 z-10 backdrop-blur-sm bg-opacity-90">
+                                                    <Trophy className="w-3 h-3 text-yellow-500" /> Top Movers
+                                                </h4>
+                                                <div className="space-y-2 md:space-y-3">
+                                                    {[...snacksData].sort((a, b) => b.value - a.value).map((item, index) => {
+                                                        const total = snacksData.reduce((acc, curr) => acc + curr.value, 0);
+                                                        return (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, x: 20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                transition={{ delay: index * 0.05 }}
+                                                                key={item.name}
+                                                                className="bg-gray-900/40 rounded-xl p-2 md:p-3 flex items-center justify-between group hover:bg-gray-800 transition-all duration-300 border border-gray-800/50 hover:border-purple-500/30"
+                                                            >
+                                                                <div className="flex items-center gap-3 md:gap-4">
+                                                                    <div className={cn(
+                                                                        "w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-[10px] md:text-xs font-bold shadow-lg transition-transform group-hover:scale-110",
+                                                                        index === 0 ? "bg-gradient-to-br from-yellow-400 to-yellow-600 text-white" :
+                                                                            index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" :
+                                                                                index === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" :
+                                                                                    "bg-gray-800 text-gray-400"
+                                                                    )}>
+                                                                        {index === 0 ? <Trophy className="w-3 h-3 md:w-4 md:h-4" /> :
+                                                                            index < 3 ? <Flame className="w-3 h-3 md:w-4 md:h-4" /> :
+                                                                                <span>#{index + 1}</span>}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-xs md:text-sm font-bold text-gray-200 group-hover:text-white transition-colors">{item.name}</p>
+                                                                        <div className="w-24 md:w-32 h-1 md:h-1.5 bg-gray-800 rounded-full mt-1.5 md:mt-2 overflow-hidden">
+                                                                            <div
+                                                                                className="h-full rounded-full transition-all duration-1000 ease-out"
+                                                                                style={{
+                                                                                    width: `${(item.value / total) * 100}%`,
+                                                                                    backgroundColor: COLORS[index % COLORS.length]
+                                                                                }}
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className="text-sm md:text-lg font-black text-white">{item.value}</p>
-                                                                <p className="text-[8px] md:text-[10px] text-gray-500 font-medium uppercase">Units</p>
-                                                            </div>
-                                                        </motion.div>
-                                                    )
-                                                })}
+                                                                <div className="text-right">
+                                                                    <p className="text-sm md:text-lg font-black text-white">{item.value}</p>
+                                                                    <p className="text-[8px] md:text-[10px] text-gray-500 font-medium uppercase">Units</p>
+                                                                </div>
+                                                            </motion.div>
+                                                        )
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ) : <NoDataState />}
-                            </motion.div>
-                        )}
-
-                        {activeTab === 'traffic' && (
-                            <motion.div
-                                key="traffic"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 1.05 }}
-                                transition={{ duration: 0.3 }}
-                                className="h-full flex flex-col"
-                            >
-                                <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
-                                        <Clock className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
-                                        Peak Traffic Hours
-                                    </h3>
-                                </div>
-                                <div className="flex-1 w-full h-full min-h-0">
-                                    {hourlyData.length > 0 ? (
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={hourlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                                                <XAxis dataKey="hour" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
-                                                <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                                <Tooltip content={<CustomTooltip />} />
-                                                <Bar dataKey="customers" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                                                    {hourlyData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.customers > 3 ? '#eab308' : '#3b82f6'} />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
                                     ) : <NoDataState />}
-                                </div>
-                            </motion.div>
-                        )}
+                                </motion.div>
+                            )}
 
-                        {activeTab === 'stock' && (
-                            <motion.div
-                                key="stock"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 1.05 }}
-                                transition={{ duration: 0.3 }}
-                                className="h-full flex flex-col"
-                            >
-                                <StockManagement
-                                    stockData={stockData}
-                                    onUpdateStock={onUpdateStock}
-                                />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                            {activeTab === 'traffic' && (
+                                <motion.div
+                                    key="traffic"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 1.05 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="h-full flex flex-col"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                                            <Clock className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+                                            Peak Traffic Hours
+                                        </h3>
+                                    </div>
+                                    <div className="flex-1 w-full h-full min-h-0">
+                                        {hourlyData.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={hourlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                                                    <XAxis dataKey="hour" stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
+                                                    <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                                    <Tooltip content={<CustomTooltip />} />
+                                                    <Bar dataKey="customers" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                                                        {hourlyData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.customers > 3 ? '#eab308' : '#3b82f6'} />
+                                                        ))}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        ) : <NoDataState />}
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {activeTab === 'stock' && (
+                                <motion.div
+                                    key="stock"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 1.05 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="h-full flex flex-col"
+                                >
+                                    <StockManagement
+                                        stockData={stockData}
+                                        onUpdateStock={onUpdateStock}
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }
 
