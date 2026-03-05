@@ -58,7 +58,7 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
             { id: 'diet_coke', name: 'Diet Coke', price: 50 },
             { id: 'pepsi', name: 'Pepsi', price: 50 },
             { id: 'pepsi_small', name: 'Pepsi Small', shortName: 'Pepsi S', price: 25 },
-            { id: 'coke_small', name: 'Coke Small', shortName: 'Coke S', price: 25 },
+            { id: 'soda', name: 'Soda', shortName: 'Soda', price: 35 },
             { id: 'rio', name: 'Rio', price: 55 },
             { id: 'red_bull', name: 'Red Bull', price: 135 },
         ]
