@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import MoneyAlert from '@/components/money-alert' // Adjust path as needed
+
+
 
 export interface DashboardHeaderProps {
     activeTab: 'dashboard' | 'table' | 'overview';
@@ -18,34 +18,16 @@ export function DashboardHeader({
     avgSessionValue,
     totalHours
 }: DashboardHeaderProps) {
-    const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const [pendingTab, setPendingTab] = useState<'dashboard' | 'table' | 'overview' | null>(null);
+
 
     const handleTabClick = (tab: 'dashboard' | 'table' | 'overview') => {
         if (tab !== activeTab) {
-            setPendingTab(tab);
-            setIsAlertOpen(true);
-        }
-    };
-
-    const handleAlertClose = () => {
-        setIsAlertOpen(false);
-        if (pendingTab) {
-            setActiveTab(pendingTab);
-            setPendingTab(null);
+            setActiveTab(tab);
         }
     };
 
     return (
         <>
-            {/* 
-               MoneyAlert is now OUTSIDE the parent div with 'backdrop-blur-lg'.
-               This ensures position: fixed works relative to the viewport (full screen).
-            */}
-            <MoneyAlert 
-                isOpen={isAlertOpen} 
-                onClose={handleAlertClose} 
-            />
 
             <div className="border-b border-gray-900 backdrop-blur-lg bg-black/50">
                 <div className="max-w-7xl mx-auto px-4 py-4 md:px-6 md:py-6">

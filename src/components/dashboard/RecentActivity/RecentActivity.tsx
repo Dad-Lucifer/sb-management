@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Clock, Coffee, Trophy, Zap, Ghost,
@@ -7,7 +6,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CustomerEntry } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
-import MoneyAlert from '@/components/money-alert' // Imported MoneyAlert
+
 
 export interface RecentActivityProps {
     recentEntries: CustomerEntry[];
@@ -29,9 +28,7 @@ export function RecentActivity({
     onPause
 }: RecentActivityProps) {
 
-    // State for MoneyAlert
-    const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const [selectedEntry, setSelectedEntry] = useState<CustomerEntry | null>(null);
+
 
     const filteredEntries = recentEntries.filter(entry => {
         const startTime = new Date(entry.timestamp).getTime()
@@ -48,37 +45,11 @@ export function RecentActivity({
 
     // Handler to intercept clicks
     const handleCardClick = (entry: CustomerEntry) => {
-        const startTime = new Date(entry.timestamp).getTime()
-        const durationMs = entry.duration * 60 * 60 * 1000
-        const endTime = startTime + durationMs
-        const isExpired = endTime <= currentTime.getTime()
-
-        // If session is ongoing, trigger alert
-        if (!isExpired) {
-            setSelectedEntry(entry);
-            setIsAlertOpen(true);
-        } else {
-            // If expired (history), just open details directly
-            openEntryDetails(entry);
-        }
-    }
-
-    // Handler for alert confirmation
-    const handleAlertClose = () => {
-        setIsAlertOpen(false);
-        if (selectedEntry) {
-            openEntryDetails(selectedEntry);
-            setSelectedEntry(null);
-        }
+        openEntryDetails(entry);
     }
 
     return (
         <>
-            {/* Money Alert - Rendered outside the main container to ensure full screen coverage */}
-            <MoneyAlert 
-                isOpen={isAlertOpen} 
-                onClose={handleAlertClose} 
-            />
 
             <div className="flex flex-col h-full min-h-0 space-y-3">
                 {/* Header - Compact for Mobile, Flex for Tablet/Desktop */}

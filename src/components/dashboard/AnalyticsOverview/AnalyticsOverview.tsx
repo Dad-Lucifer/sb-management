@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 import { COLORS } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
-import MoneyAlert from '@/components/money-alert' // Imported the MoneyAlert component
+
 
 export interface DailyAnalyticsData {
     date: Date;
@@ -38,9 +38,7 @@ export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: Ana
     const [activeTab, setActiveTab] = useState<'revenue' | 'inventory' | 'traffic' | 'stock'>('revenue')
     const [selectedDayIndex, setSelectedDayIndex] = useState(0)
 
-    // State for MoneyAlert
-    const [isMoneyAlertOpen, setIsMoneyAlertOpen] = useState(false);
-    const [pendingDayIndex, setPendingDayIndex] = useState<number | null>(null);
+
 
     const currentData = historyData[selectedDayIndex] || {
         snacksData: [],
@@ -73,27 +71,12 @@ export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: Ana
     // Handler for Day Filter Click
     const handleDayClick = (idx: number) => {
         if (idx !== selectedDayIndex) {
-            setPendingDayIndex(idx);
-            setIsMoneyAlertOpen(true);
-        }
-    };
-
-    // Handler for Alert Close (Confirmation)
-    const handleAlertClose = () => {
-        setIsMoneyAlertOpen(false);
-        if (pendingDayIndex !== null) {
-            setSelectedDayIndex(pendingDayIndex);
-            setPendingDayIndex(null);
+            setSelectedDayIndex(idx);
         }
     };
 
     return (
         <>
-            {/* Money Alert Component - Rendered outside to ensure full screen coverage */}
-            <MoneyAlert 
-                isOpen={isMoneyAlertOpen} 
-                onClose={handleAlertClose} 
-            />
 
             <div className="space-y-4 md:space-y-6 h-full flex flex-col">
                 {/* Header Section */}

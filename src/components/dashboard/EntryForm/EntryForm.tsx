@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useState } from 'react' // Imported useState
-import MoneyAlert from '@/components/money-alert' // Imported the MoneyAlert component
+
+
 
 import { SNACK_INVENTORY, ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
 
@@ -53,22 +53,11 @@ export function EntryForm({
     paymentMode,
     setPaymentMode
 }: EntryFormProps) {
-    // State to control the MoneyAlert visibility
-    const [isMoneyAlertOpen, setIsMoneyAlertOpen] = useState(false);
 
-    // Function to handle the actual proceeding logic after alert confirmation
-    const handleAlertClose = () => {
-        setIsMoneyAlertOpen(false);
-        handleProceed();
-    };
 
     return (
         <div className="space-y-6">
-            {/* Money Alert Component */}
-            <MoneyAlert 
-                isOpen={isMoneyAlertOpen} 
-                onClose={handleAlertClose} 
-            />
+
 
             <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -378,7 +367,7 @@ export function EntryForm({
                 whileTap={{ scale: 0.98 }}
             >
                 <Button
-                    onClick={() => setIsMoneyAlertOpen(true)}
+                    onClick={handleProceed}
                     disabled={isAnimating}
                     className={`w-full py-6 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-bold text-lg transition-all duration-300 shadow-lg shadow-red-500/25 relative overflow-hidden group ${isAnimating ? 'opacity-70 cursor-not-allowed' : ''
                         }`}
