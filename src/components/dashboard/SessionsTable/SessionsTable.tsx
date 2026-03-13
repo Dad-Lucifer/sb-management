@@ -10,16 +10,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { format, startOfWeek, endOfWeek } from 'date-fns'
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
+import { db } from '@/lib/firebase'
+import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore'
 
 export interface SessionsTableProps {
-    recentEntries: CustomerEntry[];
     handleDownloadExcel: () => void;
     openEntryDetails: (entry: CustomerEntry) => void;
 }
 
 export function SessionsTable({
-    recentEntries,
     handleDownloadExcel,
     openEntryDetails
 }: SessionsTableProps) {
@@ -27,6 +27,33 @@ export function SessionsTable({
     const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'))
     const [selectedWeek, setSelectedWeek] = useState<string>('all')
     const [paymentFilter, setPaymentFilter] = useState<string>('all')
+    const [monthlyEntries, setMonthlyEntries] = useState<CustomerEntry[]>([])
+
+    // Optimal On-Demand Fetching
+    useEffect(() => {
+        const [year, month] = selectedMonth.split('-').map(Number)
+        const date = new Date(year, month - 1)
+        const start = startOfMonth(date)
+        const end = endOfMonth(date)
+
+        const q = query(
+            collection(db, "entries"),
+            where("timestamp", ">=", Timestamp.fromDate(start)),
+            where("timestamp", "<=", Timestamp.fromDate(end)),
+            orderBy("timestamp", "desc")
+        )
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const entries = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                timestamp: doc.data().timestamp instanceof Timestamp ? doc.data().timestamp.toDate() : new Date(doc.data().timestamp)
+            })) as CustomerEntry[]
+            setMonthlyEntries(entries)
+        })
+
+        return () => unsubscribe()
+    }, [selectedMonth])
 
     // Detect if the selected month is the current ongoing month
     const isCurrentMonth = useMemo(() => {
@@ -34,23 +61,16 @@ export function SessionsTable({
         return selectedMonth === format(now, 'yyyy-MM');
     }, [selectedMonth]);
 
-    // Group entries by Month to generate Month Options
     const monthOptions = useMemo(() => {
         const monthsSet = new Set<string>();
-        // Always include current month
-        monthsSet.add(format(new Date(), 'yyyy-MM'));
+        const now = new Date();
+        
+        // Define cutoff: 2 months ago
+        const cutoffDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        recentEntries.forEach(entry => {
-            try {
-                const date = new Date(entry.timestamp);
-                // Ensure valid date
-                if (!isNaN(date.getTime())) {
-                    monthsSet.add(format(date, 'yyyy-MM'));
-                }
-            } catch (e) {
-                console.error("Invalid date for entry", entry);
-            }
-        });
+        monthsSet.add(format(now, 'yyyy-MM'));
+        
+        monthsSet.add(format(cutoffDate, 'yyyy-MM'));
 
         return Array.from(monthsSet)
             .sort((a, b) => b.localeCompare(a)) // Descending
@@ -62,7 +82,7 @@ export function SessionsTable({
                     label: format(date, 'MMMM yyyy')
                 };
             });
-    }, [recentEntries]);
+    }, []);
 
     // Reset week selection when month changes
     useEffect(() => {
@@ -70,12 +90,7 @@ export function SessionsTable({
     }, [selectedMonth])
 
     // Filter Entries by Selected Month
-    const entriesInSelectedMonth = useMemo(() => {
-        return recentEntries.filter(entry => {
-            const date = new Date(entry.timestamp);
-            return format(date, 'yyyy-MM') === selectedMonth;
-        });
-    }, [recentEntries, selectedMonth]);
+    const entriesInSelectedMonth = monthlyEntries;
 
     // Generate Week Options (Only for Current Month)
     const weekOptions = useMemo(() => {
@@ -127,7 +142,7 @@ export function SessionsTable({
         }
 
         return entries;
-    }, [entriesInSelectedMonth, selectedWeek, isCurrentMonth, paymentFilter]);
+    }, [monthlyEntries, selectedWeek, isCurrentMonth, paymentFilter]);
 
     // Calculate Totals for the *visible* entries
     const stats = useMemo(() => {

@@ -33,6 +33,4 @@ export interface CustomerEntry {
     isPaused?: boolean
     pausedAt?: Date
     totalPausedTime?: number
-    // SMS tracking
-    smsSent?: boolean
 }

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { format, subDays, isSameMonth } from 'date-fns'
+import { format, subDays } from 'date-fns'
 import { db } from '@/lib/firebase'
-import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction } from 'firebase/firestore'
+import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction, where, increment } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import { checkAndArchiveOldData } from '@/lib/archiver'
-import { sendSessionEndSMS } from '@/lib/sms'
+
 import * as XLSX from 'xlsx'
 
 import { ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
@@ -29,6 +29,7 @@ export default function GamingCafeDashboard() {
     const [stockData, setStockData] = useState<Record<string, number>>({})
 
     const [recentEntries, setRecentEntries] = useState<CustomerEntry[]>([])
+    const [monthlySummary, setMonthlySummary] = useState<any>(null)
     const [activeTab, setActiveTab] = useState<'dashboard' | 'table' | 'overview'>('dashboard')
     const [isAnimating, setIsAnimating] = useState(false)
     const [focusedField, setFocusedField] = useState<string | null>(null)
@@ -41,8 +42,7 @@ export default function GamingCafeDashboard() {
     // Ref to keep track of entries for the interval
     const recentEntriesRef = useRef<CustomerEntry[]>([])
 
-    // Track sessions that have already received SMS
-    const sentSMSRef = useRef<Set<string>>(new Set())
+
 
     // Update ref whenever entries change
     useEffect(() => {
@@ -52,26 +52,29 @@ export default function GamingCafeDashboard() {
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
 
-        // Firebase Real-time Listener
-        const q = query(collection(db, "entries"), orderBy("timestamp", "desc"))
+        // Balanced Optimal Feed:
+        // Fetch last 7 days to support the analytics charts while staying highly scalable.
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        const q = query(
+            collection(db, "entries"), 
+            where("timestamp", ">=", weekAgo),
+            orderBy("timestamp", "desc")
+        )
+        
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const entries = snapshot.docs.map(doc => {
                 const data = doc.data()
-                // Migration Logic for Old Data
                 let parsedSnacks: SnackOrder[] = []
 
                 if (Array.isArray(data.snacks)) {
                     if (data.snacks.length > 0 && typeof data.snacks[0] === 'string') {
-                        // Old format: string[]
+                        // Old format migration...
                         const counts: Record<string, number> = {}
                         data.snacks.forEach((s: string) => counts[s] = (counts[s] || 0) + 1)
-                        // Try to map old keys to new inventory if possible, else generic
                         parsedSnacks = Object.entries(counts).map(([name, count]) => {
                             let unitPrice = 0
-                            if (name === 'soda') unitPrice = 50
-                            if (name === 'chips') unitPrice = 40
-                            if (name === 'sandwich') unitPrice = 120
-                            if (name === 'combo') unitPrice = 200
+                            const priceMap = { 'soda': 50, 'chips': 40, 'sandwich': 120, 'combo': 200 }
+                            unitPrice = (priceMap as any)[name] || 0
 
                             return {
                                 id: name,
@@ -83,7 +86,6 @@ export default function GamingCafeDashboard() {
                             }
                         })
                     } else {
-                        // New format
                         parsedSnacks = data.snacks
                     }
                 }
@@ -116,6 +118,17 @@ export default function GamingCafeDashboard() {
         })
         return () => unsubscribe()
     }, [])
+
+    // Monthly Summary Listener for Scalable Stats
+    useEffect(() => {
+        const monthKey = format(currentTime, 'yyyy-MM')
+        const unsubscribe = onSnapshot(doc(db, "summaries", monthKey), (doc) => {
+            if (doc.exists()) {
+                setMonthlySummary(doc.data())
+            }
+        })
+        return () => unsubscribe()
+    }, [format(currentTime, 'yyyy-MM')])
 
     const handleUpdateStock = async (id: string, newQuantity: number) => {
         try {
@@ -170,7 +183,7 @@ export default function GamingCafeDashboard() {
     useEffect(() => {
         const runArchival = async () => {
             try {
-                const result = await checkAndArchiveOldData(6); // 6 months
+                const result = await checkAndArchiveOldData(2); // 2 months
                 if (result.status === 'success') {
                     toast({
                         title: "Data Archived",
@@ -186,87 +199,23 @@ export default function GamingCafeDashboard() {
         runArchival();
     }, [])
 
-    // Monitor sessions and send SMS when they complete
-    useEffect(() => {
-        const checkAndSendSMS = async () => {
-            const now = currentTime.getTime();
-            // Only send SMS to sessions that completed within the last 5 minutes
-            const recentCompletionWindow = 5 * 60 * 1000; // 5 minutes in milliseconds
+    /**
+     * Highly Optimal Summary System
+     * Maintains a single document per month with aggregated stats.
+     * Drastically reduces read costs for Analytics and Overview.
+     */
+    const updateMonthlySummary = async (date: Date, changes: any) => {
+        const monthKey = format(date, 'yyyy-MM')
+        const summaryRef = doc(db, "summaries", monthKey)
+        
+        try {
+            await setDoc(summaryRef, changes, { merge: true })
+        } catch (error) {
+            console.error("Failed to update monthly summary:", error)
+        }
+    }
 
-            for (const entry of recentEntries) {
-                // Skip if SMS already sent (check both in-memory and database)
-                if (sentSMSRef.current.has(entry.id) || entry.smsSent) {
-                    continue;
-                }
 
-                // Check if session is completed
-                const startTime = new Date(entry.timestamp).getTime();
-                const durationMs = entry.duration * 60 * 60 * 1000;
-                const totalPaused = entry.totalPausedTime || 0;
-                const endTime = startTime + durationMs + totalPaused;
-
-                // Calculate how long ago the session ended
-                const timeSinceCompletion = now - endTime;
-
-                // Only send SMS if:
-                // 1. Session has ended (endTime <= now)
-                // 2. Session is not paused
-                // 3. Session completed recently (within the last 5 minutes)
-                if (endTime <= now && !entry.isPaused && timeSinceCompletion <= recentCompletionWindow) {
-                    console.log(`Session recently completed for ${entry.customerName} (${Math.round(timeSinceCompletion / 1000)}s ago), sending SMS...`);
-
-                    const success = await sendSessionEndSMS({
-                        phoneNumber: entry.phoneNumber,
-                        customerName: entry.customerName,
-                        sessionDuration: entry.duration
-                    });
-
-                    if (success) {
-                        // Mark this session as SMS sent in memory
-                        sentSMSRef.current.add(entry.id);
-
-                        // Update Firestore to persist SMS status
-                        try {
-                            const entryRef = doc(db, "entries", entry.id);
-                            await updateDoc(entryRef, {
-                                smsSent: true
-                            });
-                            console.log(`SMS sent successfully to ${entry.customerName}`);
-                        } catch (error) {
-                            console.error(`Failed to update SMS status in database:`, error);
-                        }
-                    } else {
-                        console.error(`Failed to send SMS to ${entry.customerName}`);
-                    }
-                } else if (endTime <= now && !entry.isPaused && timeSinceCompletion > recentCompletionWindow) {
-                    // Session completed too long ago, mark as SMS sent without actually sending
-                    // This prevents trying to send SMS to old sessions
-                    if (!sentSMSRef.current.has(entry.id) && !entry.smsSent) {
-                        console.log(`Session for ${entry.customerName} completed too long ago (${Math.round(timeSinceCompletion / 60000)} minutes), skipping SMS`);
-                        sentSMSRef.current.add(entry.id);
-
-                        // Optionally update database to mark as processed
-                        try {
-                            const entryRef = doc(db, "entries", entry.id);
-                            await updateDoc(entryRef, {
-                                smsSent: false // Mark as false to indicate it was skipped, not sent
-                            });
-                        } catch (error) {
-                            console.error(`Failed to update SMS status:`, error);
-                        }
-                    }
-                }
-            }
-        };
-
-        // Check every 30 seconds for completed sessions
-        const interval = setInterval(checkAndSendSMS, 30000);
-
-        // Also check immediately
-        checkAndSendSMS();
-
-        return () => clearInterval(interval);
-    }, [recentEntries, currentTime])
 
 
 
@@ -354,6 +303,22 @@ export default function GamingCafeDashboard() {
                 age: parseInt(age) || 0,
                 paymentMode: paymentMode,
             })
+
+            // Update Monthly Summary (Scalability optimization)
+            const statsUpdate: any = {
+                totalRevenue: increment(calculateSubTotal()),
+                totalCustomers: increment(1),
+                totalGuests: increment(parseInt(numberOfPeople) || 1)
+            }
+            if (paymentMode === 'online') statsUpdate.totalOnline = increment(calculateSubTotal())
+            else statsUpdate.totalCash = increment(calculateSubTotal())
+            
+            // Track snacks in summary
+            Object.entries(selectedSnacks).forEach(([id, count]) => {
+                statsUpdate[`snacks.${id}`] = increment(count)
+            })
+
+            await updateMonthlySummary(new Date(), statsUpdate)
 
             setTimeout(() => {
                 setCustomerName('')
@@ -458,6 +423,20 @@ export default function GamingCafeDashboard() {
                 description: "Customer details have been saved.",
                 className: "bg-blue-600 border-blue-500 text-white"
             })
+
+            // Update Summary for deltas
+            const revenueDelta = subTotal - selectedEntry.subTotal
+            const peopleDelta = newPeople - selectedEntry.numberOfPeople
+            
+            const statsUpdate: any = {
+                totalRevenue: increment(revenueDelta),
+                totalGuests: increment(peopleDelta)
+            }
+            // Adjust payment mode stats if changed or just revenue diff
+            if (selectedEntry.paymentMode === 'online') statsUpdate.totalOnline = increment(revenueDelta)
+            else statsUpdate.totalCash = increment(revenueDelta)
+
+            await updateMonthlySummary(new Date(selectedEntry.timestamp), statsUpdate)
         } catch (error: any) {
             console.error("Error updating document: ", error)
             toast({
@@ -469,8 +448,23 @@ export default function GamingCafeDashboard() {
     }
 
     const handleDeleteEntry = async (entryId: string) => {
+        const entry = recentEntries.find(e => e.id === entryId)
+        if (!entry) return
+
         try {
             await deleteDoc(doc(db, "entries", entryId))
+            
+            // Reverse summary stats
+            const statsUpdate: any = {
+                totalRevenue: increment(-entry.subTotal),
+                totalCustomers: increment(-1),
+                totalGuests: increment(-(entry.numberOfPeople || 1))
+            }
+            if (entry.paymentMode === 'online') statsUpdate.totalOnline = increment(-entry.subTotal)
+            else statsUpdate.totalCash = increment(-entry.subTotal)
+
+            await updateMonthlySummary(new Date(entry.timestamp), statsUpdate)
+
             toast({ title: "Session Deleted", description: "The session has been removed.", className: "bg-red-600 border-red-500 text-white" })
         } catch (error) {
             console.error(error)
@@ -552,13 +546,7 @@ export default function GamingCafeDashboard() {
         })).filter(item => item.revenue > 0 || item.customers > 0)
     }
 
-    // Filter for today's entries for the stats bar
-    const startOfToday = new Date(currentTime)
-    startOfToday.setHours(0, 0, 0, 0)
 
-    const todayEntries = recentEntries.filter(entry => {
-        return new Date(entry.timestamp) >= startOfToday
-    })
 
     // Helper to check if a session is completed
     const isSessionCompleted = (entry: CustomerEntry) => {
@@ -574,17 +562,12 @@ export default function GamingCafeDashboard() {
         return endTime <= currentTime.getTime()
     }
 
-    // Use Current Month data for Table View, otherwise use today's data (Dashboard & Analytics)
-    // AND filter for only completed sessions for stats calculations
-    const statsEntries = ((activeTab === 'table')
-        ? recentEntries.filter(entry => isSameMonth(new Date(entry.timestamp), currentTime))
-        : todayEntries
-    ).filter(isSessionCompleted)
 
-    const totalRevenue = statsEntries.reduce((sum, entry) => sum + entry.subTotal, 0)
-    const totalCustomers = statsEntries.length
+
+    const totalRevenue = monthlySummary?.totalRevenue || 0
+    const totalCustomers = monthlySummary?.totalCustomers || 0
     const avgSessionValue = totalCustomers > 0 ? totalRevenue / totalCustomers : 0
-    const totalHours = statsEntries.reduce((sum, entry) => sum + entry.duration, 0)
+    const totalHours = recentEntries.filter(isSessionCompleted).reduce((sum, entry) => sum + entry.duration, 0)
 
 
 
@@ -783,7 +766,6 @@ export default function GamingCafeDashboard() {
                                 className="pb-8"
                             >
                                 <SessionsTable
-                                    recentEntries={recentEntries}
                                     handleDownloadExcel={handleDownloadExcel}
                                     openEntryDetails={openEntryDetails}
                                 />

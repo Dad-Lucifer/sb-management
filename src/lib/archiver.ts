@@ -2,7 +2,7 @@ import { db } from './firebase';
 import { collection, query, where, getDocs, Timestamp, writeBatch } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 
-export const checkAndArchiveOldData = async (months: number = 6) => {
+export const checkAndArchiveOldData = async (months: number = 2) => {
     const now = new Date();
     const cutoffDate = new Date(now.setMonth(now.getMonth() - months));
 
