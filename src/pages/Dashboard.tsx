@@ -48,11 +48,11 @@ export default function GamingCafeDashboard() {
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
 
-        // Fetch last 24 hours history
-        const twentyFourHrsAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+        // Fetch last 3 days history to support Analytics Overview (which shows 3 days)
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
         const q = query(
             collection(db, "entries"), 
-            where("timestamp", ">=", twentyFourHrsAgo),
+            where("timestamp", ">=", threeDaysAgo),
             orderBy("timestamp", "desc")
         )
         
@@ -678,7 +678,7 @@ export default function GamingCafeDashboard() {
                                 />
 
                                 <RecentActivity
-                                    recentEntries={recentEntries}
+                                    recentEntries={recentEntries.filter(e => e.timestamp >= new Date(Date.now() - 24 * 60 * 60 * 1000))}
                                     activityTab={activityTab}
                                     setActivityTab={setActivityTab}
                                     currentTime={currentTime}
