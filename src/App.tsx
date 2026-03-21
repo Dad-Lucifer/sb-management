@@ -4,7 +4,6 @@ import { onAuthStateChanged, User } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
-import Pending from './pages/Pending'
 import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Loader2 } from 'lucide-react'
@@ -36,7 +35,7 @@ function App() {
                 <Routes>
                     <Route
                         path="/"
-                        element={<Pending />}
+                        element={!user ? <Login /> : <Navigate to="/dashboard" />}
                     />
                     <Route
                         path="/dashboard"

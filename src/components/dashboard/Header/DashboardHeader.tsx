@@ -4,19 +4,11 @@
 export interface DashboardHeaderProps {
     activeTab: 'dashboard' | 'table' | 'overview';
     setActiveTab: (tab: 'dashboard' | 'table' | 'overview') => void;
-    totalCustomers: number;
-    totalRevenue: number;
-    avgSessionValue: number;
-    totalHours: number;
 }
 
 export function DashboardHeader({
     activeTab,
-    setActiveTab,
-    totalCustomers,
-    totalRevenue,
-    avgSessionValue,
-    totalHours
+    setActiveTab
 }: DashboardHeaderProps) {
 
 
@@ -56,27 +48,6 @@ export function DashboardHeader({
                         </div>
                     </div>
 
-                    {/* Stats Bar - Only Visible in Table View */}
-                    {activeTab === 'table' && (
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-4 md:mt-6 animate-in fade-in slide-in-from-top-4 duration-300">
-                            <div className="bg-gray-900/30 p-3 md:p-0 rounded-xl md:bg-transparent md:rounded-none text-center">
-                                <div className="text-xl md:text-2xl font-bold text-white">{totalCustomers}</div>
-                                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Customers</div>
-                            </div>
-                            <div className="bg-gray-900/30 p-3 md:p-0 rounded-xl md:bg-transparent md:rounded-none text-center">
-                                <div className="text-xl md:text-2xl font-bold text-red-500">₹{totalRevenue.toFixed(0)}</div>
-                                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Total Revenue</div>
-                            </div>
-                            <div className="bg-gray-900/30 p-3 md:p-0 rounded-xl md:bg-transparent md:rounded-none text-center">
-                                <div className="text-xl md:text-2xl font-bold text-white">₹{avgSessionValue.toFixed(0)}</div>
-                                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Avg Session</div>
-                            </div>
-                            <div className="bg-gray-900/30 p-3 md:p-0 rounded-xl md:bg-transparent md:rounded-none text-center">
-                                <div className="text-xl md:text-2xl font-bold text-white">{totalHours.toFixed(1)}</div>
-                                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Total Hours</div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </>

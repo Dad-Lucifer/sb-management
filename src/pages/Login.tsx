@@ -7,12 +7,14 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { motion } from 'framer-motion'
 import { KeyRound, Mail, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const { toast } = useToast()
+    const navigate = useNavigate()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -26,6 +28,7 @@ export default function Login() {
                 description: "Successfully logged in to SB Gaming Cafe.",
                 className: "bg-blue-600 border-blue-500 text-white"
             })
+            navigate('/dashboard')
         } catch (error: any) {
             console.error(error)
             let errorMessage = "Failed to login. Please check your credentials."

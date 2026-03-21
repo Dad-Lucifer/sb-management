@@ -1,4 +1,4 @@
-import { Download, CreditCard, Banknote, Calendar } from 'lucide-react'
+import { Download, CreditCard, Banknote, Calendar, Trash2, Loader2, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CustomerEntry } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
@@ -11,16 +11,16 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
+import * as XLSX from 'xlsx'
 import { db } from '@/lib/firebase'
-import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore'
+import { collection, query, where, orderBy, onSnapshot, Timestamp, getDocs, writeBatch, doc, setDoc } from 'firebase/firestore'
+import { useToast } from '@/hooks/use-toast'
 
 export interface SessionsTableProps {
-    handleDownloadExcel: () => void;
     openEntryDetails: (entry: CustomerEntry) => void;
 }
 
 export function SessionsTable({
-    handleDownloadExcel,
     openEntryDetails
 }: SessionsTableProps) {
     // Initialize with current month
@@ -28,6 +28,8 @@ export function SessionsTable({
     const [selectedWeek, setSelectedWeek] = useState<string>('all')
     const [paymentFilter, setPaymentFilter] = useState<string>('all')
     const [monthlyEntries, setMonthlyEntries] = useState<CustomerEntry[]>([])
+    const [isDeleting, setIsDeleting] = useState(false)
+    const { toast } = useToast()
 
     // Optimal On-Demand Fetching
     useEffect(() => {
@@ -54,6 +56,67 @@ export function SessionsTable({
 
         return () => unsubscribe()
     }, [selectedMonth])
+
+    const handleDeleteMonthData = async () => {
+        if (!confirm(`Are you absolutely sure you want to PERMANENTLY delete all records for ${selectedMonth}? This action cannot be undone.`)) {
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const date = new Date(year, month - 1);
+            const start = startOfMonth(date);
+            const end = endOfMonth(date);
+
+            const q = query(
+                collection(db, "entries"),
+                where("timestamp", ">=", Timestamp.fromDate(start)),
+                where("timestamp", "<=", Timestamp.fromDate(end))
+            );
+
+            const snapshot = await getDocs(q);
+            
+            // Delete in chunks of 500 to respect Firestore batch limit
+            const chunks = [];
+            for (let i = 0; i < snapshot.docs.length; i += 490) {
+                chunks.push(snapshot.docs.slice(i, i + 490));
+            }
+
+            for (const chunk of chunks) {
+                const batch = writeBatch(db);
+                chunk.forEach((document) => {
+                    batch.delete(document.ref);
+                });
+                await batch.commit();
+            }
+
+            // Delete the monthly summary
+            try {
+                const summaryBatch = writeBatch(db);
+                summaryBatch.delete(doc(db, "summaries", selectedMonth));
+                await summaryBatch.commit();
+            } catch(e) {}
+
+            toast({
+                title: "Data Deleted",
+                description: `Successfully removed ${snapshot.size} records for ${selectedMonth}.`,
+                className: "bg-green-600 border-green-500 text-white"
+            });
+            
+            // Revert back to current month after deletion
+            setSelectedMonth(format(new Date(), 'yyyy-MM'));
+        } catch (error: any) {
+            console.error("Error deleting month data:", error);
+            toast({
+                variant: "destructive",
+                title: "Delete Failed",
+                description: error.message || "Something went wrong while deleting data."
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     // Detect if the selected month is the current ongoing month
     const isCurrentMonth = useMemo(() => {
@@ -150,16 +213,101 @@ export function SessionsTable({
         let online = 0;
         filteredEntries.forEach(e => {
             if (e.splitPayment) {
-                cash += e.splitPayment.cashAmount;
-                online += e.splitPayment.onlineAmount;
+                cash += Number(e.splitPayment.cashAmount) || 0;
+                online += Number(e.splitPayment.onlineAmount) || 0;
             } else if (e.paymentMode === 'online') {
-                online += e.subTotal;
+                online += Number(e.subTotal) || 0;
             } else {
-                cash += e.subTotal;
+                cash += Number(e.subTotal) || 0;
             }
         });
-        return { cash, online };
+        return { cash, online, total: cash + online };
     }, [filteredEntries]);
+
+    // Auto-Heal Monthly Summaries based on ground truth
+    const trueStats = useMemo(() => {
+        let cash = 0; let online = 0; let customers = 0; let guests = 0;
+        monthlyEntries.forEach(e => {
+            customers += 1;
+            guests += e.numberOfPeople || 1;
+            if (e.splitPayment) {
+                cash += Number(e.splitPayment.cashAmount) || 0;
+                online += Number(e.splitPayment.onlineAmount) || 0;
+            } else if (e.paymentMode === 'online') {
+                online += Number(e.subTotal) || 0;
+            } else {
+                cash += Number(e.subTotal) || 0;
+            }
+        });
+        return { cash, online, total: cash + online, customers, guests };
+    }, [monthlyEntries]);
+
+    useEffect(() => {
+        if (monthlyEntries.length === 0) return;
+        const healSummary = async () => {
+            try {
+                const summaryRef = doc(db, "summaries", selectedMonth);
+                await setDoc(summaryRef, {
+                    totalRevenue: trueStats.total,
+                    totalCash: trueStats.cash,
+                    totalOnline: trueStats.online,
+                    totalCustomers: trueStats.customers,
+                    totalGuests: trueStats.guests
+                }, { merge: true });
+            } catch (e) {
+                console.error("Failed to heal summary:", e);
+            }
+        };
+        healSummary();
+    }, [trueStats, selectedMonth]);
+
+    const handleDownloadExcel = () => {
+        try {
+            const data = filteredEntries.map(entry => ({
+                'Customer Name': entry.customerName,
+                'Phone Number': entry.phoneNumber,
+                'Age': entry.age || '-',
+                'Payment Mode': entry.paymentMode || 'cash',
+                'Number of People': entry.numberOfPeople || 1,
+                'Duration (Hours)': entry.duration,
+                'Snacks': entry.snacks.map(s => `${s.name} (x${s.quantity})`).join(', '),
+                'Total Amount': entry.subTotal,
+                'Date': new Date(entry.timestamp).toLocaleDateString(),
+                'Time': new Date(entry.timestamp).toLocaleTimeString(),
+                'Status': entry.isRenewed ? 'Renewed' : 'New'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sessions");
+
+            // Generate buffer
+            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+
+            // Create download link
+            const url = window.URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `SB_Gaming_Sessions_${selectedMonth}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            toast({
+                title: "Download Started",
+                description: `Your Excel file for ${selectedMonth} is being downloaded.`,
+                className: "bg-blue-600 border-blue-500 text-white"
+            })
+        } catch (error) {
+            console.error("Download failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Download Failed",
+                description: "Could not generate Excel file.",
+            })
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -225,6 +373,17 @@ export function SessionsTable({
                             </SelectContent>
                         </Select>
 
+                        {!isCurrentMonth && (
+                            <Button
+                                onClick={handleDeleteMonthData}
+                                disabled={isDeleting}
+                                className="w-full md:w-auto bg-gray-900 border border-red-900/50 hover:bg-red-950 text-red-500 flex items-center justify-center gap-2 h-10 text-sm"
+                            >
+                                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                {isDeleting ? "Deleting..." : "Delete Month Data"}
+                            </Button>
+                        )}
+
                         <Button
                             onClick={handleDownloadExcel}
                             className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 h-10 text-sm"
@@ -251,6 +410,13 @@ export function SessionsTable({
                         </div>
                         <div className="text-xl sm:text-2xl font-bold text-white">₹{stats.online.toFixed(0)}</div>
                     </div>
+                    <div className="bg-gradient-to-br from-red-600/20 to-orange-600/10 p-3 sm:p-4 rounded-xl border border-red-500/20">
+                        <div className="text-xs text-red-400 uppercase tracking-wider mb-1 flex items-center gap-2">
+                            <Activity className="w-3.5 h-3.5" />
+                            Total Revenue
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-red-500">₹{stats.total.toFixed(0)}</div>
+                    </div>
                 </div>
             </div>
 
@@ -265,9 +431,9 @@ export function SessionsTable({
                 <>
                     {/* Desktop/Tablet View */}
                     <div className="hidden md:block bg-gray-900/30 border border-gray-800 rounded-xl overflow-hidden backdrop-blur-sm">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-900/50 border-b border-gray-800 text-xs uppercase tracking-wider text-gray-400">
+                        <div className="overflow-x-auto overflow-y-auto max-h-[650px]">
+                            <table className="w-full relative min-w-[800px]">
+                                <thead className="bg-gray-900/90 backdrop-blur-md border-b border-gray-800 text-xs uppercase tracking-wider text-gray-400 sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th className="text-left p-4 font-semibold">Customer</th>
                                         <th className="text-left p-4 font-semibold">Phone</th>
@@ -358,7 +524,7 @@ export function SessionsTable({
                     </div>
 
                     {/* Mobile Card View */}
-                    <div className="md:hidden space-y-3">
+                    <div className="md:hidden space-y-3 overflow-y-auto max-h-[650px] pr-2 pb-4">
                         {filteredEntries.map((entry) => (
                             <div
                                 key={entry.id}

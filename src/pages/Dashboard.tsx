@@ -4,9 +4,6 @@ import { db } from '@/lib/firebase'
 import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction, where, increment } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 import { checkAndArchiveOldData } from '@/lib/archiver'
-
-import * as XLSX from 'xlsx'
-
 import { ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
 import { DashboardHeader } from '@/components/dashboard/Header/DashboardHeader'
@@ -29,7 +26,6 @@ export default function GamingCafeDashboard() {
     const [stockData, setStockData] = useState<Record<string, number>>({})
 
     const [recentEntries, setRecentEntries] = useState<CustomerEntry[]>([])
-    const [monthlySummary, setMonthlySummary] = useState<any>(null)
     const [activeTab, setActiveTab] = useState<'dashboard' | 'table' | 'overview'>('dashboard')
     const [isAnimating, setIsAnimating] = useState(false)
     const [focusedField, setFocusedField] = useState<string | null>(null)
@@ -52,12 +48,11 @@ export default function GamingCafeDashboard() {
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
 
-        // Balanced Optimal Feed:
-        // Fetch last 7 days to support the analytics charts while staying highly scalable.
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        // Fetch last 24 hours history
+        const twentyFourHrsAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
         const q = query(
             collection(db, "entries"), 
-            where("timestamp", ">=", weekAgo),
+            where("timestamp", ">=", twentyFourHrsAgo),
             orderBy("timestamp", "desc")
         )
         
@@ -119,16 +114,7 @@ export default function GamingCafeDashboard() {
         return () => unsubscribe()
     }, [])
 
-    // Monthly Summary Listener for Scalable Stats
-    useEffect(() => {
-        const monthKey = format(currentTime, 'yyyy-MM')
-        const unsubscribe = onSnapshot(doc(db, "summaries", monthKey), (doc) => {
-            if (doc.exists()) {
-                setMonthlySummary(doc.data())
-            }
-        })
-        return () => unsubscribe()
-    }, [format(currentTime, 'yyyy-MM')])
+
 
     const handleUpdateStock = async (id: string, newQuantity: number) => {
         try {
@@ -564,10 +550,6 @@ export default function GamingCafeDashboard() {
 
 
 
-    const totalRevenue = monthlySummary?.totalRevenue || 0
-    const totalCustomers = monthlySummary?.totalCustomers || 0
-    const avgSessionValue = totalCustomers > 0 ? totalRevenue / totalCustomers : 0
-    const totalHours = recentEntries.filter(isSessionCompleted).reduce((sum, entry) => sum + entry.duration, 0)
 
 
 
@@ -631,53 +613,6 @@ export default function GamingCafeDashboard() {
         }
     })
 
-    const handleDownloadExcel = () => {
-        try {
-            const data = recentEntries.map(entry => ({
-                'Customer Name': entry.customerName,
-                'Phone Number': entry.phoneNumber,
-                'Age': entry.age || '-',
-                'Payment Mode': entry.paymentMode || 'cash',
-                'Number of People': entry.numberOfPeople || 1,
-                'Duration (Hours)': entry.duration,
-                'Snacks': entry.snacks.map(s => `${s.name} (x${s.quantity})`).join(', '),
-                'Total Amount': entry.subTotal,
-                'Date': entry.timestamp.toLocaleDateString(),
-                'Time': entry.timestamp.toLocaleTimeString(),
-                'Status': entry.isRenewed ? 'Renewed' : 'New'
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Sessions");
-
-            // Generate buffer
-            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
-
-            // Create download link
-            const url = window.URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `SB_Gaming_Sessions_${new Date().toISOString().split('T')[0]}.xlsx`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            toast({
-                title: "Download Started",
-                description: "Your Excel file is being downloaded.",
-                className: "bg-blue-600 border-blue-500 text-white"
-            })
-        } catch (error) {
-            console.error("Download failed:", error);
-            toast({
-                variant: "destructive",
-                title: "Download Failed",
-                description: "Could not generate Excel file.",
-            })
-        }
-    }
 
     return (
         <div className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-blue-500/30">
@@ -692,10 +627,6 @@ export default function GamingCafeDashboard() {
                 <DashboardHeader
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
-                    totalCustomers={totalCustomers}
-                    totalRevenue={totalRevenue}
-                    avgSessionValue={avgSessionValue}
-                    totalHours={totalHours}
                 />
 
                 {/* Main Content with AnimatePresence */}
@@ -766,7 +697,6 @@ export default function GamingCafeDashboard() {
                                 className="pb-8"
                             >
                                 <SessionsTable
-                                    handleDownloadExcel={handleDownloadExcel}
                                     openEntryDetails={openEntryDetails}
                                 />
                             </motion.div>

@@ -51,7 +51,7 @@ export function RecentActivity({
     return (
         <>
 
-            <div className="flex flex-col h-full min-h-0 space-y-3">
+            <div className="flex flex-col h-full min-h-0 space-y-3 max-h-[660px] md:max-h-[820px]">
                 {/* Header - Compact for Mobile, Flex for Tablet/Desktop */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between px-2 sm:px-1 gap-3 sm:gap-0 shrink-0">
                     <div className="flex flex-col min-w-0">
@@ -92,17 +92,16 @@ export function RecentActivity({
                     <div className="absolute top-0 right-0 p-20 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
                     <div className="absolute bottom-0 left-0 p-20 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                    <ScrollArea className="flex-1 w-full h-full">
+                    <ScrollArea type="always" className="flex-1 w-full h-full pr-3">
                         <div className="p-2 sm:p-3 md:p-4 space-y-2 pb-20 sm:pb-24 md:space-y-3">
-                            <AnimatePresence mode='popLayout'>
+                            <AnimatePresence>
                                 {filteredEntries.length === 0 ? (
                                     <EmptyState tab={activityTab} />
                                 ) : (
-                                    filteredEntries.map((entry, index) => (
+                                    filteredEntries.map((entry) => (
                                         <ActivityCard
                                             key={entry.id}
                                             entry={entry}
-                                            index={index}
                                             currentTime={currentTime}
                                             onClick={() => handleCardClick(entry)}
                                             onDelete={onDelete}
@@ -158,14 +157,12 @@ function TabButton({ active, onClick, icon: Icon, label, count }: { active: bool
 
 function ActivityCard({
     entry,
-    index,
     currentTime,
     onClick,
     onDelete,
     onPause
 }: {
     entry: CustomerEntry;
-    index: number;
     currentTime: Date;
     onClick: () => void;
     onDelete?: (id: string) => void;
@@ -224,7 +221,7 @@ function ActivityCard({
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2, delay: index * 0.03 }}
+            transition={{ duration: 0.2 }}
             onClick={onClick}
             whileTap={{ scale: 0.97 }}
             className="group relative cursor-pointer touch-manipulation select-none will-change-transform"
