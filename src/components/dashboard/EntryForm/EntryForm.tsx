@@ -1,10 +1,9 @@
-import { motion } from 'framer-motion'
-import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, ChevronDown, Plus, Minus, CreditCard, Banknote } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, ChevronDown, ChevronRight, Plus, Minus, CreditCard, Banknote, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 
 
@@ -53,6 +52,8 @@ export function EntryForm({
     paymentMode,
     setPaymentMode
 }: EntryFormProps) {
+    const [showMenuModal, setShowMenuModal] = useState(false)
+    const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
 
 
     return (
@@ -256,78 +257,204 @@ export function EntryForm({
                         Power-ups
                     </Label>
                     <div className="relative">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className={`w-full justify-between bg-red-950/20 border-red-500/30 text-red-100 hover:bg-red-900/40 hover:border-red-500 hover:text-white pl-3 h-12 transition-all duration-300 shadow-[0_0_10px_rgba(239,68,68,0.05)] hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] ${Object.keys(selectedSnacks).length > 0 ? 'border-red-500 bg-red-900/30' : ''}`}
-                                >
-                                    <span className="truncate font-medium">
-                                        {Object.keys(selectedSnacks).length === 0 ? "Select Power-ups" : `${Object.values(selectedSnacks).reduce((a, b) => a + b, 0)} Items Selected`}
-                                    </span>
-                                    <ChevronDown className="w-4 h-4 text-red-400" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80 p-0 bg-gray-900 border-gray-800 text-white" align="start">
-                                <Tabs defaultValue="drinks" className="w-full">
-                                    <TabsList className="w-full grid grid-cols-4 bg-gray-950/50 p-1">
-                                        {Object.entries(SNACK_INVENTORY).map(([key, cat]) => (
-                                            <TabsTrigger
-                                                key={key}
-                                                value={key}
-                                                className="data-[state=active]:bg-gray-800 data-[state=active]:text-white text-gray-400 hover:text-white hover:bg-gray-800/50 text-xs py-2 transition-all duration-200"
-                                            >
-                                                <cat.icon className="w-4 h-4" />
-                                            </TabsTrigger>
-                                        ))}
-                                    </TabsList>
-                                    {Object.entries(SNACK_INVENTORY).map(([key, cat]) => (
-                                        <TabsContent key={key} value={key} className="p-3 mt-0 max-h-[250px] overflow-y-auto">
-                                            <div className="mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{cat.label}</div>
-                                            <div className="space-y-1">
-                                                {cat.items.map(item => {
-                                                    const count = selectedSnacks[item.id] || 0
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowMenuModal(true)}
+                            className={`w-full justify-between bg-red-950/20 border-red-500/30 text-red-100 hover:bg-red-900/40 hover:border-red-500 hover:text-white pl-3 h-12 transition-all duration-300 shadow-[0_0_10px_rgba(239,68,68,0.05)] hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] ${Object.keys(selectedSnacks).length > 0 ? 'border-red-500 bg-red-900/30' : ''}`}
+                        >
+                            <span className="truncate font-medium">
+                                {Object.keys(selectedSnacks).length === 0 ? "Select Power-ups" : `${Object.values(selectedSnacks).reduce((a, b) => a + b, 0)} Items Selected`}
+                            </span>
+                            <ChevronDown className="w-4 h-4 text-red-400" />
+                        </Button>
+
+                        {/* FULL MENU MODAL — RESPONSIVE: Grid on PC, Scroll on Mobile */}
+                        <AnimatePresence>
+                            {showMenuModal && (
+                                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                                        onClick={() => setShowMenuModal(false)}
+                                    />
+                                    <motion.div
+                                        initial={{ y: "100%", opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        exit={{ y: "100%", opacity: 0 }}
+                                        transition={{ type: "spring", damping: 28, stiffness: 350 }}
+                                        className="relative w-full h-[85vh] sm:h-auto sm:max-h-[90vh] lg:w-[90vw] lg:max-w-6xl sm:w-[500px] bg-[#0a0a0a] border border-gray-800 sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {/* Header */}
+                                        <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-800 bg-gradient-to-r from-red-950/30 to-transparent">
+                                            <div>
+                                                <h2 className="text-lg font-black text-white tracking-tight">⚡ Power-ups Menu</h2>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Select items from the full menu</p>
+                                            </div>
+                                            <button onClick={() => setShowMenuModal(false)} className="p-2 rounded-xl bg-gray-800/50 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+
+                                        {/* Menu Content */}
+                                        <div className="flex-1 overflow-y-auto px-4 py-4">
+
+                                            {/* ===== MOBILE: Accordion (lg:hidden) ===== */}
+                                            <div className="lg:hidden space-y-2">
+                                                {Object.entries(SNACK_INVENTORY).map(([key, cat]) => {
+                                                    const isOpen = expandedCategory === key
+                                                    const catItemCount = cat.items.reduce((sum, item) => sum + (selectedSnacks[item.id] || 0), 0)
                                                     return (
-                                                        <div key={item.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-800/50 transition-colors">
-                                                            <div>
-                                                                <div className="text-sm font-medium">{item.name}</div>
-                                                                <div className="text-xs text-red-400">₹{item.price}</div>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 bg-gray-950 rounded-md p-1">
-                                                                <button
-                                                                    onClick={() => handleSnackChange(item.id, -1)}
-                                                                    className="w-6 h-6 flex items-center justify-center hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors"
-                                                                    disabled={count === 0}
-                                                                >
-                                                                    <Minus className="w-3 h-3" />
-                                                                </button>
-                                                                <span className="w-4 text-center text-sm font-medium">{count}</span>
-                                                                <button
-                                                                    onClick={() => handleSnackChange(item.id, 1)}
-                                                                    className="w-6 h-6 flex items-center justify-center hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors"
-                                                                >
-                                                                    <Plus className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
+                                                        <div key={key} className={`rounded-xl border transition-all duration-200 ${isOpen ? 'bg-gray-900/60 border-gray-700' : 'bg-gray-900/30 border-gray-800/50'}`}>
+                                                            {/* Accordion Header - tap to toggle */}
+                                                            <button
+                                                                onClick={() => setExpandedCategory(isOpen ? null : key)}
+                                                                className="w-full flex items-center justify-between px-4 py-3"
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`p-2 rounded-xl bg-gradient-to-br ${cat.gradient} border border-gray-800`}>
+                                                                        <cat.icon className="w-4 h-4 text-white" />
+                                                                    </div>
+                                                                    <div className="text-left">
+                                                                        <h3 className={`text-sm font-black uppercase tracking-wider ${cat.textColor}`}>{cat.label}</h3>
+                                                                        <p className="text-[10px] text-gray-600">{cat.items.length} items</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {catItemCount > 0 && (
+                                                                        <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{catItemCount}</span>
+                                                                    )}
+                                                                    <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
+                                                                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                                    </motion.div>
+                                                                </div>
+                                                            </button>
+                                                            {/* Accordion Content */}
+                                                            <AnimatePresence>
+                                                                {isOpen && (
+                                                                    <motion.div
+                                                                        initial={{ height: 0, opacity: 0 }}
+                                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                                        exit={{ height: 0, opacity: 0 }}
+                                                                        transition={{ duration: 0.25 }}
+                                                                        className="overflow-hidden"
+                                                                    >
+                                                                        <div className="px-3 pb-3 space-y-1 border-t border-gray-800/50 pt-2">
+                                                                            {cat.items.map(item => {
+                                                                                const count = selectedSnacks[item.id] || 0
+                                                                                return (
+                                                                                    <div key={item.id} className={`flex items-center justify-between px-2 py-2 rounded-lg transition-all duration-200 border ${count > 0 ? 'bg-red-500/5 border-red-500/20' : 'border-transparent hover:bg-gray-800/30'}`}>
+                                                                                        <div className="flex-1 min-w-0 mr-2">
+                                                                                            <div className="text-sm font-bold text-gray-100 truncate">{item.name}</div>
+                                                                                            <div className="text-xs font-mono text-red-400">₹{item.price}</div>
+                                                                                        </div>
+                                                                                        {count === 0 ? (
+                                                                                            <button
+                                                                                                onClick={() => handleSnackChange(item.id, 1)}
+                                                                                                className="h-7 px-4 rounded-md bg-gray-800 hover:bg-gray-700 text-white text-[10px] font-black border border-gray-700 hover:border-gray-600 transition-all active:scale-95"
+                                                                                            >
+                                                                                                ADD
+                                                                                            </button>
+                                                                                        ) : (
+                                                                                            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-red-600 shadow-lg shadow-red-900/20">
+                                                                                                <button onClick={() => handleSnackChange(item.id, -1)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-red-500 text-white transition-all">
+                                                                                                    <Minus className="w-3 h-3" />
+                                                                                                </button>
+                                                                                                <span className="w-4 text-center text-xs font-black text-white">{count}</span>
+                                                                                                <button onClick={() => handleSnackChange(item.id, 1)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-red-500 text-white transition-all">
+                                                                                                    <Plus className="w-3 h-3" />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )
+                                                                            })}
+                                                                        </div>
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
                                                         </div>
                                                     )
                                                 })}
                                             </div>
-                                        </TabsContent>
-                                    ))}
-                                </Tabs>
-                                {Object.keys(selectedSnacks).length > 0 && (
-                                    <div className="p-3 border-t border-gray-800 bg-gray-950/30">
-                                        <div className="flex justify-between items-center text-sm font-medium">
-                                            <span className="text-gray-400">Selected Value</span>
-                                            <span className="text-red-500">
-                                                ₹{Object.entries(selectedSnacks).reduce((acc, [id, count]) => acc + (ALL_SNACKS_MAP[id]?.price || 0) * count, 0)}
-                                            </span>
+
+                                            {/* ===== DESKTOP: 3-Column Grid (hidden on mobile) ===== */}
+                                            <div className="hidden lg:grid lg:grid-cols-3 gap-6">
+                                                {Object.entries(SNACK_INVENTORY).map(([key, cat]) => (
+                                                    <div key={key} className="bg-gray-900/40 rounded-xl border border-gray-800/50 p-3">
+                                                        <div className="flex items-center gap-3 mb-3 pb-2 border-b border-gray-800/50">
+                                                            <div className={`p-2 rounded-xl bg-gradient-to-br ${cat.gradient} border border-gray-800`}>
+                                                                <cat.icon className="w-4 h-4 text-white" />
+                                                            </div>
+                                                            <div>
+                                                                <h3 className={`text-xs font-black uppercase tracking-wider ${cat.textColor}`}>{cat.label}</h3>
+                                                                <p className="text-[10px] text-gray-600">{cat.items.length} items</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            {cat.items.map(item => {
+                                                                const count = selectedSnacks[item.id] || 0
+                                                                return (
+                                                                    <div key={item.id} className={`flex items-center justify-between px-2 py-2 rounded-lg transition-all duration-200 border ${count > 0 ? 'bg-red-500/5 border-red-500/20' : 'border-transparent hover:bg-gray-800/30'}`}>
+                                                                        <div className="flex-1 min-w-0 mr-2">
+                                                                            <div className="text-sm font-bold text-gray-100 truncate">{item.name}</div>
+                                                                            <div className="text-xs font-mono text-red-400">₹{item.price}</div>
+                                                                        </div>
+                                                                        {count === 0 ? (
+                                                                            <button onClick={() => handleSnackChange(item.id, 1)} className="h-7 px-4 rounded-md bg-gray-800 hover:bg-gray-700 text-white text-[10px] font-black border border-gray-700 hover:border-gray-600 transition-all active:scale-95">
+                                                                                ADD
+                                                                            </button>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-red-600 shadow-lg shadow-red-900/20">
+                                                                                <button onClick={() => handleSnackChange(item.id, -1)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-red-500 text-white transition-all">
+                                                                                    <Minus className="w-3 h-3" />
+                                                                                </button>
+                                                                                <span className="w-4 text-center text-xs font-black text-white">{count}</span>
+                                                                                <button onClick={() => handleSnackChange(item.id, 1)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-red-500 text-white transition-all">
+                                                                                    <Plus className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
                                         </div>
-                                    </div>
-                                )}
-                            </PopoverContent>
-                        </Popover>
+
+                                        {/* Sticky Footer */}
+                                        <div className="shrink-0 p-4 border-t border-gray-800 bg-black/80 backdrop-blur-md">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Value</div>
+                                                    <div className="text-xl font-black text-white">
+                                                        ₹{Object.entries(selectedSnacks).reduce((acc, [id, count]) => acc + (ALL_SNACKS_MAP[id]?.price || 0) * count, 0)}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {Object.keys(selectedSnacks).length > 0 && (
+                                                        <div className="bg-red-600/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black border border-red-500/20">
+                                                            {Object.values(selectedSnacks).reduce((a, b) => a + b, 0)} ITEMS
+                                                        </div>
+                                                    )}
+                                                    <Button
+                                                        onClick={() => setShowMenuModal(false)}
+                                                        className="h-10 px-8 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white rounded-xl font-black text-sm shadow-xl shadow-red-900/20 border border-red-500/50"
+                                                    >
+                                                        Done
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
             </div>

@@ -319,82 +319,91 @@ export function EntryDetailsDialog({
                                     {/* SECTION: SUPPLY DEPOT - OPTIMIZED */}
                                     {activeSection === 'supply' && (
                                         <div className="space-y-6">
-                                            {/* Category Scroll */}
-                                            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar snap-x">
-                                                {Object.entries(SNACK_INVENTORY).map(([key, category]) => (
-                                                    <button
-                                                        key={key}
-                                                        onClick={() => setActiveCategory(key)}
-                                                        className={cn(
-                                                            "flex-none px-5 py-2.5 rounded-full text-sm font-bold border transition-all snap-center",
-                                                            activeCategory === key
-                                                                ? "bg-white text-black border-white shadow-lg shadow-white/10"
-                                                                : "bg-gray-800 text-gray-400 border-transparent hover:bg-gray-700 hover:text-white"
-                                                        )}
-                                                    >
-                                                        {category.label}
-                                                    </button>
-                                                ))}
+                                            {/* Category Grid - PREV ITEMS FIRST */}
+                                            <div className="grid grid-cols-5 gap-2 pb-4">
+                                                {Object.entries(SNACK_INVENTORY).map(([key, category]) => {
+                                                    const CatIcon = category.icon;
+                                                    return (
+                                                        <button
+                                                            key={key}
+                                                            onClick={() => setActiveCategory(key)}
+                                                            className={cn(
+                                                                "flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border transition-all duration-300",
+                                                                activeCategory === key
+                                                                    ? "bg-red-600 text-white border-red-500 shadow-lg shadow-red-600/20"
+                                                                    : "bg-gray-800/50 text-gray-500 border-gray-700 hover:bg-gray-800 hover:text-white"
+                                                            )}
+                                                            title={category.label}
+                                                        >
+                                                            <CatIcon className="w-5 h-5" />
+                                                            <span className="text-[10px] font-black uppercase tracking-tighter truncate w-full text-center">
+                                                                {category.label}
+                                                            </span>
+                                                        </button>
+                                                    )
+                                                })}
                                             </div>
 
                                             {/* Items List - FULL WIDTH ROWS FOR MOBILE */}
                                             <div className="space-y-3">
                                                 {SNACK_INVENTORY[activeCategory]?.items.map((item, idx) => {
                                                     const qty = getSnackQuantity(item.id)
+                                                    const CategoryIcon = SNACK_INVENTORY[activeCategory]?.icon || Coffee
                                                     return (
                                                         <motion.div
                                                             key={item.id}
                                                             layout
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ delay: idx * 0.05 }}
+                                                            initial={{ opacity: 0, scale: 0.95 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            transition={{ delay: idx * 0.03 }}
                                                             className={cn(
-                                                                "relative p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between gap-4",
+                                                                "relative p-4 rounded-2xl border transition-all duration-500 flex items-center justify-between gap-4 overflow-hidden group",
                                                                 qty > 0
-                                                                    ? "bg-red-500/10 border-red-500/30"
-                                                                    : "bg-gray-800/40 border-gray-700/50"
+                                                                    ? "bg-red-500/5 border-red-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.1)]"
+                                                                    : "bg-gray-900/40 border-gray-800/50 hover:border-gray-700"
                                                             )}
                                                         >
                                                             {/* Item Info */}
-                                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                            <div className="flex items-center gap-4 flex-1 min-w-0">
                                                                 <div className={cn(
-                                                                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                                                                    qty > 0 ? "bg-red-600 text-white" : "bg-gray-700 text-gray-400"
+                                                                    "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110",
+                                                                    qty > 0 ? "bg-red-600 text-white shadow-lg shadow-red-600/20" : "bg-gray-800 text-gray-400"
                                                                 )}>
-                                                                    <Coffee className="w-5 h-5" />
+                                                                    <CategoryIcon className="w-5 h-5" />
                                                                 </div>
-                                                                <div className="min-w-0">
-                                                                    <h4 className="text-sm font-bold text-white truncate">{item.name}</h4>
-                                                                    <div className="text-xs text-gray-400">₹{item.price}</div>
+                                                                <div className="min-w-0 sm:pr-4">
+                                                                    <h4 className="text-sm font-black text-gray-100 truncate flex items-center gap-1.5">
+                                                                        {item.name}
+                                                                        {qty > 4 && <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse" />}
+                                                                    </h4>
+                                                                    <div className="text-xs font-mono text-red-400 mt-0.5">₹{item.price}</div>
                                                                 </div>
                                                             </div>
 
                                                             {/* Controls */}
                                                             <div className="flex items-center gap-3 shrink-0">
                                                                 {qty === 0 ? (
-                                                                    // Initial Add Button (Big)
                                                                     <motion.button
-                                                                        whileTap={{ scale: 0.95 }}
+                                                                        whileTap={{ scale: 0.92 }}
                                                                         onClick={() => handleEditSnackChange(item.id, 1)}
-                                                                        className="h-10 px-4 rounded-xl bg-white text-black font-bold text-sm hover:bg-gray-200 shadow-lg shadow-white/10"
+                                                                        className="h-10 px-6 rounded-xl bg-white text-black font-black text-xs hover:bg-gray-200 transition-all shadow-lg shadow-white/5 active:shadow-none"
                                                                     >
-                                                                        Add
+                                                                        ADD
                                                                     </motion.button>
                                                                 ) : (
-                                                                    // Edit Controls
-                                                                    <div className="flex items-center gap-2">
+                                                                    <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1 rounded-xl border border-white/5 shadow-inner">
                                                                         <motion.button
                                                                             whileTap={{ scale: 0.9 }}
                                                                             onClick={() => handleEditSnackChange(item.id, -1)}
-                                                                            className="h-9 w-9 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 flex items-center justify-center"
+                                                                            className="h-8 w-8 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
                                                                         >
                                                                             <Minus className="w-4 h-4" />
                                                                         </motion.button>
-                                                                        <span className="w-6 text-center font-black text-white">{qty}</span>
+                                                                        <span className="w-6 text-center font-black text-white text-sm">{qty}</span>
                                                                         <motion.button
                                                                             whileTap={{ scale: 0.9 }}
                                                                             onClick={() => handleEditSnackChange(item.id, 1)}
-                                                                            className="h-9 w-9 rounded-lg bg-red-600 border border-red-500 text-white hover:bg-red-500 flex items-center justify-center shadow-lg shadow-red-600/20"
+                                                                            className="h-8 w-8 rounded-lg bg-red-600 hover:bg-red-500 text-white flex items-center justify-center transition-all shadow-lg shadow-red-600/10"
                                                                         >
                                                                             <Plus className="w-4 h-4" />
                                                                         </motion.button>
