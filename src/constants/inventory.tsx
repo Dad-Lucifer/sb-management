@@ -39,15 +39,15 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
         gradient: "from-red-500/20 to-orange-600/5",
         textColor: "text-red-400",
         items: [
-            { id: 'queen_m_pizza', name: 'Queen M. Pizza', price: 200 },
-            { id: 'm_pizza', name: 'M Pizza', price: 200 },
-            { id: 'only_c_pizza', name: 'Only C. Pizza', price: 200 },
-            { id: 'cheese_corn_pizza', name: 'Cheese & Corn Pizza', price: 220 },
-            { id: 'paneer_pizza', name: 'Paneer Pizza', price: 220 },
-            { id: 'bbq_paneer_pizza', name: 'BBQ Paneer Pizza', price: 220 },
-            { id: 'paneer_tikka', name: 'Paneer Tikka', price: 220 },
-            { id: 'paneer_corn_pizza', name: 'Paneer Corn Pizza', price: 220 },
-            { id: 'spicy_happiness_pizza', name: 'Spicy Happiness Pizza', price: 200 },
+            { id: 'queen_m_pizza', name: 'Queen M. Pizza', price: 30 },
+            { id: 'm_pizza', name: 'M Pizza', price: 30 },
+            { id: 'only_c_pizza', name: 'Only C. Pizza', price: 30 },
+            { id: 'cheese_corn_pizza', name: 'Cheese & Corn Pizza', price: 30 },
+            { id: 'paneer_pizza', name: 'Paneer Pizza', price: 30 },
+            { id: 'bbq_paneer_pizza', name: 'BBQ Paneer Pizza', price: 30 },
+            { id: 'paneer_tikka', name: 'Paneer Tikka', price: 30 },
+            { id: 'paneer_corn_pizza', name: 'Paneer Corn Pizza', price: 30 },
+            { id: 'spicy_happiness_pizza', name: 'Spicy Happiness Pizza', price: 30 },
         ]
     },
     garlic_bread: {
@@ -56,11 +56,11 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
         gradient: "from-amber-600/20 to-yellow-600/5",
         textColor: "text-amber-400",
         items: [
-            { id: 'plain_garlic_bread', name: 'Plain Garlic Bread', price: 110 },
-            { id: 'cheese_garlic_bread', name: 'Cheese Garlic Bread', price: 130 },
-            { id: 'cheese_sche_garlic_bread', name: 'Cheese Sche. Garlic Bread', price: 150 },
-            { id: 'cheese_corn_garlic_bread', name: 'Cheese & Corn Garlic Bread', price: 160 },
-            { id: 'cheese_chilli_garlic_bread', name: 'Cheese Chilli Garlic Bread', price: 140 },
+            { id: 'plain_garlic_bread', name: 'Plain Garlic Bread', price: 30 },
+            { id: 'cheese_garlic_bread', name: 'Cheese Garlic Bread', price: 30 },
+            { id: 'cheese_sche_garlic_bread', name: 'Cheese Sche. Garlic Bread', price: 30 },
+            { id: 'cheese_corn_garlic_bread', name: 'Cheese & Corn Garlic Bread', price: 30 },
+            { id: 'cheese_chilli_garlic_bread', name: 'Cheese Chilli Garlic Bread', price: 30 },
         ]
     },
     pasta: {
@@ -69,10 +69,10 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
         gradient: "from-orange-500/20 to-red-600/5",
         textColor: "text-orange-400",
         items: [
-            { id: 'tangy_red_sauce', name: 'Tangy Red Sauce', price: 160 },
-            { id: 'white_sauce', name: 'White Sauce', price: 180 },
-            { id: 'red_sauce', name: 'Red Sauce', price: 200 },
-            { id: 'white_sauce_pasta_cheese', name: 'White Sauce Pasta With Cheese', price: 220 },
+            { id: 'tangy_red_sauce', name: 'Tangy Red Sauce', price: 30 },
+            { id: 'white_sauce', name: 'White Sauce', price: 30 },
+            { id: 'red_sauce', name: 'Red Sauce', price: 30 },
+            { id: 'white_sauce_pasta_cheese', name: 'White Sauce Pasta With Cheese', price: 30 },
         ]
     },
     momos: {
@@ -81,14 +81,14 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
         gradient: "from-emerald-500/20 to-teal-600/5",
         textColor: "text-emerald-400",
         items: [
-            { id: 'veg_sch_momos_s', name: 'Veg Sch. Momos (Steam)', price: 140 },
-            { id: 'veg_sch_momos_f', name: 'Veg Sch. Momos (Fried)', price: 150 },
-            { id: 'corn_cheese_momos_s', name: 'Corn & Cheese Momos (Steam)', price: 160 },
-            { id: 'corn_cheese_momos_f', name: 'Corn & Cheese Momos (Fried)', price: 170 },
-            { id: 'paneer_tikka_momos_s', name: 'Paneer Tikka Momos (Steam)', price: 150 },
-            { id: 'paneer_tikka_momos_f', name: 'Paneer Tikka Momos (Fried)', price: 160 },
-            { id: 'mix_veg_momos_s', name: 'Mix Veg Momos (Steam)', price: 130 },
-            { id: 'mix_veg_momos_f', name: 'Mix Veg Momos (Fried)', price: 140 },
+            { id: 'veg_sch_momos_s', name: 'Veg Sch. Momos (Steam)', price: 30 },
+            { id: 'veg_sch_momos_f', name: 'Veg Sch. Momos (Fried)', price: 30 },
+            { id: 'corn_cheese_momos_s', name: 'Corn & Cheese Momos (Steam)', price: 30 },
+            { id: 'corn_cheese_momos_f', name: 'Corn & Cheese Momos (Fried)', price: 30 },
+            { id: 'paneer_tikka_momos_s', name: 'Paneer Tikka Momos (Steam)', price: 30 },
+            { id: 'paneer_tikka_momos_f', name: 'Paneer Tikka Momos (Fried)', price: 30 },
+            { id: 'mix_veg_momos_s', name: 'Mix Veg Momos (Steam)', price: 30 },
+            { id: 'mix_veg_momos_f', name: 'Mix Veg Momos (Fried)', price: 30 },
         ]
     },
     nachos: {
@@ -97,11 +97,11 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
         gradient: "from-yellow-600/20 to-amber-700/5",
         textColor: "text-yellow-500",
         items: [
-            { id: 'classic_nachos', name: 'Classic Nachos', price: 130 },
-            { id: 'mexican_salsa_nachos', name: 'Mexican Salsa Nachos', price: 170 },
-            { id: 'cheesy_mayo_nachos', name: 'Cheesy Mayo Nachos', price: 190 },
-            { id: 'bbq_nachos', name: 'BBQ Nachos', price: 170 },
-            { id: 'tandoor_nachos', name: 'Tandoor Nachos', price: 170 },
+            { id: 'classic_nachos', name: 'Classic Nachos', price: 30 },
+            { id: 'mexican_salsa_nachos', name: 'Mexican Salsa Nachos', price: 30 },
+            { id: 'cheesy_mayo_nachos', name: 'Cheesy Mayo Nachos', price: 30 },
+            { id: 'bbq_nachos', name: 'BBQ Nachos', price: 30 },
+            { id: 'tandoor_nachos', name: 'Tandoor Nachos', price: 30 },
         ]
     },
     starters: {
@@ -110,14 +110,14 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
         gradient: "from-orange-600/20 to-red-700/5",
         textColor: "text-orange-500",
         items: [
-            { id: 'fries_regular', name: 'French Fries', price: 120 },
-            { id: 'fries_peri', name: 'Peri Peri Fries', price: 130 },
-            { id: 'fries_cheese', name: 'Cheese French Fries', price: 190 },
-            { id: 'fries_peri_cheese', name: 'Peri Peri Cheese Fries', price: 190 },
-            { id: 'garlic_balls', name: 'Potato Garlic Balls (15pc)', price: 170 },
-            { id: 'smilies', name: 'Smilies (10pc)', price: 130 },
-            { id: 'nuggets_veg', name: 'Veggie Nuggets (10pc)', price: 140 },
-            { id: 'nuggets_cheese', name: 'Cheese Corn Nuggets (10pc)', price: 190 },
+            { id: 'fries_regular', name: 'French Fries', price: 30 },
+            { id: 'fries_peri', name: 'Peri Peri Fries', price: 30 },
+            { id: 'fries_cheese', name: 'Cheese French Fries', price: 30 },
+            { id: 'fries_peri_cheese', name: 'Peri Peri Cheese Fries', price: 30 },
+            { id: 'garlic_balls', name: 'Potato Garlic Balls (15pc)', price: 30 },
+            { id: 'smilies', name: 'Smilies (10pc)', price: 30 },
+            { id: 'nuggets_veg', name: 'Veggie Nuggets (10pc)', price: 30 },
+            { id: 'nuggets_cheese', name: 'Cheese Corn Nuggets (10pc)', price: 30 },
         ]
     },
     shakes: {
@@ -126,12 +126,12 @@ export const SNACK_INVENTORY: Record<string, SnackCategory> = {
         gradient: "from-pink-500/20 to-rose-600/5",
         textColor: "text-pink-400",
         items: [
-            { id: 'vanilla_shake', name: 'Vanilla Shake', price: 120 },
-            { id: 'strawberry_shake', name: 'Strawberry Shake', price: 130 },
-            { id: 'butterscotch_shake', name: 'Butterscotch Shake', price: 130 },
-            { id: 'chocolate_shake', name: 'Chocolate Shake', price: 130 },
-            { id: 'mango_shake', name: 'Mango Shake', price: 130 },
-            { id: 'rose_shake', name: 'Rose Shake', price: 130 },
+            { id: 'vanilla_shake', name: 'Vanilla Shake', price: 30 },
+            { id: 'strawberry_shake', name: 'Strawberry Shake', price: 30 },
+            { id: 'butterscotch_shake', name: 'Butterscotch Shake', price: 30 },
+            { id: 'chocolate_shake', name: 'Chocolate Shake', price: 30 },
+            { id: 'mango_shake', name: 'Mango Shake', price: 30 },
+            { id: 'rose_shake', name: 'Rose Shake', price: 30 },
         ]
     },
     munchies: {

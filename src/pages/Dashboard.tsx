@@ -3,7 +3,6 @@ import { format, subDays } from 'date-fns'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction, where, increment } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
-import { checkAndArchiveOldData } from '@/lib/archiver'
 import { ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
 import { DashboardHeader } from '@/components/dashboard/Header/DashboardHeader'
@@ -165,25 +164,7 @@ export default function GamingCafeDashboard() {
         }
     }
 
-    // Check for old data to archive
-    useEffect(() => {
-        const runArchival = async () => {
-            try {
-                const result = await checkAndArchiveOldData(2); // 2 months
-                if (result.status === 'success') {
-                    toast({
-                        title: "Data Archived",
-                        description: `Successfully archived and deleted ${result.count} old records. File: ${result.fileName}`,
-                        className: "bg-blue-500 border-blue-600 text-white"
-                    })
-                }
-            } catch (error) {
-                console.error("Archival failed:", error)
-            }
-        }
-        // Run check once on mount
-        runArchival();
-    }, [])
+
 
     /**
      * Highly Optimal Summary System
@@ -712,7 +693,7 @@ export default function GamingCafeDashboard() {
                 onClose={closeEntryDetails}
                 onSave={saveEntryChanges}
                 readOnly={activeTab === 'table'}
-                onSplitPayment={async (entry, cash, online) => {
+                onSplitPayment={async (entry: CustomerEntry, cash: number, online: number) => {
                     try {
                         const entryRef = doc(db, "entries", entry.id)
                         await updateDoc(entryRef, {
