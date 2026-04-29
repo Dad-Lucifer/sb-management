@@ -2,17 +2,57 @@ import { CupSoda, Cookie, Pizza, Wheat, CookingPot as PastaIcon, Flame, IceCream
 
 export const PER_PERSON_RATE = 50
 
+// ---------------------------------------------------------------------------
+// Happy Hour windows:
+//   Morning : 10:00 AM – 1:00 PM  (hour >= 10 && hour < 13)
+//   Night   : 8:00 PM – 11:00 PM  (hour >= 20 && hour < 23)
+// ---------------------------------------------------------------------------
+export const isHappyHour = (date: Date): boolean => {
+    const hour = date.getHours()
+    const minute = date.getMinutes()
+    // Morning window: 10:00 – 12:59
+    const isMorning = hour >= 10 && hour < 13
+    // Night window: 20:00 – 22:59
+    const isNight = hour >= 20 && hour < 23
+    // Exclude exactly 13:00 and 23:00
+    return (isMorning || isNight) && !(hour === 13 && minute === 0) && !(hour === 23 && minute === 0)
+}
+
+// Happy Hour rates:
+//   1 person  → ₹50 / hr / person
+//   2+ people → ₹40 / hr / person
+export const getHappyHourRate = (numberOfPeople: number): number => {
+    return numberOfPeople === 1 ? 50 : 40
+}
+
+// Default (non-happy-hour) rates
 export const getHourlyRate = (numberOfPeople: number): number => {
     if (numberOfPeople === 1) return 100
     if (numberOfPeople === 2) return 75
     return 50 // More than 2 people
 }
 
+// Base calculator — no time awareness (kept for backwards compat)
 export const calculateSessionPrice = (duration: number, numberOfPeople: number): number => {
     const hours = Math.ceil(duration)
     if (duration <= 0) return 0
     const ratePerPerson = getHourlyRate(numberOfPeople)
     return hours * numberOfPeople * ratePerPerson
+}
+
+// Time-aware calculator — uses happy-hour rates when applicable
+export const calculateSessionPriceWithTime = (
+    duration: number,
+    numberOfPeople: number,
+    bookingTime: Date
+): number => {
+    if (duration <= 0) return 0
+    const hours = Math.ceil(duration)
+    if (isHappyHour(bookingTime)) {
+        const rate = getHappyHourRate(numberOfPeople)
+        return hours * numberOfPeople * rate
+    }
+    return calculateSessionPrice(duration, numberOfPeople)
 }
 
 export interface SnackItem {

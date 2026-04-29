@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     X, User, Phone, Clock, Plus, Minus, ShoppingCart,
-    Crown, Check, Coffee, CreditCard, Banknote, Activity
+    Crown, Check, Coffee, CreditCard, Banknote, Activity, Star
 } from 'lucide-react'
 import { useMemo } from 'react'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
-import { SNACK_INVENTORY, ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
+import { SNACK_INVENTORY, ALL_SNACKS_MAP, calculateSessionPriceWithTime, isHappyHour, getHappyHourRate } from '@/constants/inventory'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -85,6 +85,12 @@ export function EntryDetailsDialog({
 
     if (!entry) return null
 
+    // Happy-hour is determined by the entry's own booking timestamp
+    const bookingTime = new Date(entry.timestamp)
+    const entryIsHappyHour = isHappyHour(bookingTime)
+    const happyHourRate = getHappyHourRate(parseInt(editNumberOfPeople) || 1)
+    const happyHourWindow = bookingTime.getHours() >= 10 && bookingTime.getHours() < 13 ? '10AM–1PM' : '8PM–11PM'
+
     const handleEditSnackChange = (itemId: string, delta: number) => {
         const itemDef = ALL_SNACKS_MAP[itemId]
         if (!itemDef) return
@@ -112,7 +118,7 @@ export function EntryDetailsDialog({
         const durationNum = parseFloat(editDuration) || 0
         const peopleNum = parseInt(editNumberOfPeople) || 1
         const snacksPrice = editSnacks.reduce((total, snack) => total + (snack.totalPrice || 0), 0)
-        return calculateSessionPrice(durationNum, peopleNum) + snacksPrice
+        return calculateSessionPriceWithTime(durationNum, peopleNum, bookingTime) + snacksPrice
     }
 
     const handleSubmit = async () => {
@@ -191,6 +197,17 @@ export function EntryDetailsDialog({
                                                     {entry.paymentMode === 'online' ? <CreditCard className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
                                                     {entry.paymentMode}
                                                 </div>
+                                            )}
+                                            {/* Happy Hour Chip */}
+                                            {entryIsHappyHour && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="text-xs font-bold px-2 py-0.5 rounded border bg-yellow-500/10 text-yellow-400 border-yellow-500/30 flex items-center gap-1.5"
+                                                >
+                                                    <Star className="w-3 h-3" />
+                                                    Happy Hour · ₹{happyHourRate}/hr
+                                                </motion.div>
                                             )}
                                         </div>
                                     </div>

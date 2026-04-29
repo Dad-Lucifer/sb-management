@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, ChevronDown, ChevronRight, Plus, Minus, CreditCard, Banknote, X } from 'lucide-react'
+import { User, Phone, Clock, Coffee, Sparkles, Zap, Trophy, Gamepad2, ChevronDown, ChevronRight, Plus, Minus, CreditCard, Banknote, X, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 
 
-import { SNACK_INVENTORY, ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
+import { SNACK_INVENTORY, ALL_SNACKS_MAP, calculateSessionPriceWithTime, isHappyHour, getHappyHourRate } from '@/constants/inventory'
 
 export interface EntryFormProps {
     customerName: string;
@@ -55,6 +55,13 @@ export function EntryForm({
     const [showMenuModal, setShowMenuModal] = useState(false)
     const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
 
+    // Happy-hour detection uses the current wall-clock time (the moment the form is rendered)
+    const now = new Date()
+    const happyHour = isHappyHour(now)
+    const people = parseInt(numberOfPeople) || 1
+    const happyHourRate = getHappyHourRate(people)
+    const happyHourWindow = now.getHours() >= 10 && now.getHours() < 13 ? '10AM–1PM' : '8PM–11PM'
+
 
     return (
         <div className="space-y-6">
@@ -69,6 +76,39 @@ export function EntryForm({
                 </div>
                 <p className="text-gray-500 text-sm">Initialize a new gaming session</p>
             </div>
+
+            {/* Happy Hour Banner */}
+            {happyHour && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="relative overflow-hidden rounded-xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-orange-500/10 p-3 flex items-center gap-3"
+                >
+                    {/* Animated shimmer */}
+                    <motion.div
+                        animate={{ x: ['-100%', '200%'] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+                        className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-yellow-300/10 to-transparent pointer-events-none"
+                    />
+                    <div className="p-2 bg-yellow-500/20 rounded-lg shrink-0">
+                        <Star className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-yellow-400 font-black text-sm tracking-wide">🎉 Happy Hour Active!</p>
+                        <p className="text-yellow-300/70 text-xs mt-0.5">
+                            {happyHourWindow} · ₹{happyHourRate}/hr per person
+                            {people > 1 && <span className="ml-1 text-yellow-400 font-bold">(group deal)</span>}
+                        </p>
+                    </div>
+                    <motion.div
+                        animate={{ scale: [1, 1.15, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="text-yellow-400 font-black text-lg shrink-0"
+                    >
+                        ⚡
+                    </motion.div>
+                </motion.div>
+            )}
 
             <div id="entry-form" className="space-y-5 relative">
                 {/* XP Progress Bar */}
@@ -479,7 +519,8 @@ export function EntryForm({
                     <div className="flex flex-row md:flex-col justify-between md:justify-end md:text-right md:space-y-1 border-t border-gray-800 md:border-t-0 pt-3 md:pt-0">
                         <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
                             <Zap className="w-3 h-3" />
-                            Gaming: <span className="text-gray-300">₹{calculateSessionPrice(parseFloat(duration) || 0, parseInt(numberOfPeople) || 1).toFixed(2)}</span>
+                            Gaming: <span className="text-gray-300">₹{calculateSessionPriceWithTime(parseFloat(duration) || 0, parseInt(numberOfPeople) || 1, now).toFixed(2)}</span>
+                            {happyHour && <span className="text-yellow-500 font-bold ml-1">⚡HH</span>}
                         </div>
                         <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
                             <Coffee className="w-3 h-3" />

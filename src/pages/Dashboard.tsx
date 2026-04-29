@@ -3,7 +3,7 @@ import { format, subDays } from 'date-fns'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction, where, increment } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
-import { ALL_SNACKS_MAP, calculateSessionPrice } from '@/constants/inventory'
+import { ALL_SNACKS_MAP, calculateSessionPriceWithTime } from '@/constants/inventory'
 import { CustomerEntry, SnackOrder } from '@/types/dashboard'
 import { DashboardHeader } from '@/components/dashboard/Header/DashboardHeader'
 import { EntryForm } from '@/components/dashboard/EntryForm/EntryForm'
@@ -199,7 +199,8 @@ export default function GamingCafeDashboard() {
             }
         })
 
-        return calculateSessionPrice(durationNum, peopleNum) + snacksPrice
+        // Use current time so happy-hour pricing is applied when booking now
+        return calculateSessionPriceWithTime(durationNum, peopleNum, new Date()) + snacksPrice
     }
 
 
@@ -336,7 +337,9 @@ export default function GamingCafeDashboard() {
 
         try {
             const snacksPrice = snacks.reduce((total, snack) => total + (snack.totalPrice || 0), 0)
-            const subTotal = calculateSessionPrice(newDuration, newPeople) + snacksPrice
+            // Preserve the original booking time for happy-hour rate calculation
+            const bookingTime = new Date(selectedEntry.timestamp)
+            const subTotal = calculateSessionPriceWithTime(newDuration, newPeople, bookingTime) + snacksPrice
 
             const entryRef = doc(db, "entries", selectedEntry.id)
             await updateDoc(entryRef, {

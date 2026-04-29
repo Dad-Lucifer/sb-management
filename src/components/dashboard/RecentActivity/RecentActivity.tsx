@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Clock, Coffee, Trophy, Zap, Ghost,
-    History, Activity, AlertCircle, Crown, Trash2, Pause, Play
+    History, Activity, AlertCircle, Crown, Trash2, Pause, Play, Star
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CustomerEntry } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
+import { isHappyHour } from '@/constants/inventory'
 
 export interface RecentActivityProps {
     recentEntries: CustomerEntry[];
@@ -245,6 +246,12 @@ function ActivityCard({
                             {entry.isRenewed && (
                                 <span className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-500 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/20 flex items-center gap-0.5 shrink-0 leading-none">
                                     <Crown className="w-2.5 h-2.5" />RENEWED
+                                </span>
+                            )}
+                            {/* Happy Hour Badge */}
+                            {isHappyHour(new Date(entry.timestamp)) && (
+                                <span className="bg-yellow-500/10 text-yellow-400 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border border-yellow-500/20 flex items-center gap-0.5 shrink-0 leading-none">
+                                    <Star className="w-2.5 h-2.5" />HH
                                 </span>
                             )}
                         </div>
