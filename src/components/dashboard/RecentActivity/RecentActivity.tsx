@@ -7,26 +7,31 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { CustomerEntry } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
 import { isHappyHour } from '@/constants/inventory'
+import { memo, useState, useEffect } from 'react'
 
 export interface RecentActivityProps {
     recentEntries: CustomerEntry[];
     activityTab: 'ongoing' | 'completed';
     setActivityTab: (tab: 'ongoing' | 'completed') => void;
-    currentTime: Date;
     openEntryDetails: (entry: CustomerEntry) => void;
     onDelete?: (entryId: string) => void;
     onPause?: (entry: CustomerEntry) => void;
 }
 
-export function RecentActivity({
+export const RecentActivity = memo(function RecentActivity({
     recentEntries,
     activityTab,
     setActivityTab,
-    currentTime,
     openEntryDetails,
     onDelete,
     onPause
 }: RecentActivityProps) {
+    const [currentTime, setCurrentTime] = useState(new Date())
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+        return () => clearInterval(timer)
+    }, [])
 
     const filteredEntries = recentEntries.filter((entry: CustomerEntry) => {
         const startTime = new Date(entry.timestamp).getTime()
@@ -53,19 +58,19 @@ export function RecentActivity({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between px-2 sm:px-1 gap-3 sm:gap-0 shrink-0">
                 <div className="flex flex-col min-w-0">
                     <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent flex items-center gap-2 truncate">
-                        Station Feed
+                        VIP Lounge Activity
                         <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                             className="shrink-0"
                         >
-                            <Activity className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
+                            <Activity className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
                         </motion.div>
                     </h2>
-                    <p className="text-gray-500 text-[11px] sm:text-xs uppercase tracking-widest font-medium">Live Monitoring</p>
+                    <p className="text-gray-500 text-[11px] sm:text-xs uppercase tracking-widest font-medium">Premium Access Logs</p>
                 </div>
 
-                <div className="self-start sm:self-auto flex items-center gap-1 p-1 rounded-full bg-gray-900/50 border border-gray-800 backdrop-blur-md w-full sm:w-auto overflow-x-auto no-scrollbar">
+                <div className="self-start sm:self-auto flex items-center gap-1 p-1 rounded-full bg-[#1a0505]/80 border border-yellow-900/50 shadow-inner backdrop-blur-md w-full sm:w-auto overflow-x-auto no-scrollbar">
                     <TabButton
                         active={activityTab === 'ongoing'}
                         onClick={() => setActivityTab('ongoing')}
@@ -82,8 +87,8 @@ export function RecentActivity({
                 </div>
             </div>
 
-            <div className="flex-1 relative min-h-0 rounded-3xl overflow-hidden bg-gradient-to-b from-gray-900/40 to-black/40 border border-gray-800/50 backdrop-blur-xl shadow-2xl flex flex-col">
-                <div className="absolute top-0 right-0 p-20 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex-1 relative min-h-0 bg-[#2A0800]/50 border border-yellow-900/40 rounded-2xl shadow-[inset_0_2px_20px_rgba(0,0,0,0.8),0_10px_30px_rgba(0,0,0,0.5)] flex flex-col">
+                <div className="absolute top-0 right-0 p-20 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute bottom-0 left-0 p-20 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
 
                 <ScrollArea type="always" className="flex-1 w-full h-full pr-3">
@@ -111,32 +116,32 @@ export function RecentActivity({
             </div>
         </div>
     )
-}
+})
 
 function TabButton({ active, onClick, icon: Icon, label, count }: { active: boolean, onClick: () => void, icon: any, label: string, count?: number }) {
     return (
         <button
             onClick={onClick}
             className={cn(
-                "relative flex-1 sm:flex-none px-4 py-2 sm:px-4 sm:py-1.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden outline-none touch-manipulation select-none whitespace-nowrap",
-                active ? "text-white" : "text-gray-500 hover:text-gray-300"
+                "relative flex-1 sm:flex-none px-4 py-2 sm:px-4 sm:py-1.5 rounded-none text-[11px] uppercase font-bold text-yellow-600/80 tracking-widest transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden outline-none touch-manipulation select-none whitespace-nowrap",
+                active ? "text-white bg-yellow-600/20 border border-yellow-500/50" : "text-yellow-600/70 hover:text-yellow-400 border border-transparent"
             )}
         >
             {active && (
                 <motion.div
                     layoutId="activeTab"
-                    className="absolute inset-0 bg-gray-800 shadow-inner"
+                    className="absolute inset-0 bg-gradient-to-r from-[#FFD700]/20 to-[#B8860B]/20 shadow-[inset_0_0_10px_rgba(255,215,0,0.2)] rounded-lg"
                     initial={false}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
             )}
             <span className="relative z-10 flex items-center gap-1.5">
-                <Icon className={cn("w-3.5 h-3.5", active && "text-red-400")} />
+                <Icon className={cn("w-3.5 h-3.5", active && "text-yellow-400")} />
                 {label}
                 {count !== undefined && count > 0 && (
                     <span className={cn(
                         "ml-0.5 w-[16px] h-[16px] flex items-center justify-center rounded-full text-[10px] leading-none",
-                        active ? "bg-red-500 text-white shadow-lg shadow-red-500/50" : "bg-gray-800 text-gray-400"
+                        active ? "bg-yellow-500 text-white shadow-lg shadow-red-500/50" : "bg-gray-800 text-gray-400"
                     )}>
                         {count}
                     </span>
@@ -199,14 +204,14 @@ function ActivityCard({
             transition={{ duration: 0.2 }}
             onClick={onClick}
             whileTap={{ scale: 0.97 }}
-            className="group relative cursor-pointer touch-manipulation select-none will-change-transform"
+            className="group relative cursor-pointer touch-manipulation select-none will-change-transform hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300"
         >
             <div className={cn(
-                "relative p-3 sm:p-4 rounded-xl border transition-colors duration-200 overflow-hidden",
-                "bg-black/40 hover:bg-gray-900/60 backdrop-blur-md",
-                "active:bg-gray-800/80",
-                isWarning ? "border-yellow-500/30" : isExpired ? "border-gray-800/50 opacity-70" : "border-gray-800"
-            )}>
+                "relative p-3 sm:p-4 border border-l-4 transition-colors duration-200 overflow-hidden",
+                "bg-[#1a0505]/60 hover:bg-[#2A0800]",
+                "active:bg-[#3a0a0a]",
+                isWarning ? "border-yellow-900/40 border-l-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.1)]" : isExpired ? "border-yellow-900/20 border-l-red-900 opacity-70" : "border-yellow-900/40 border-l-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.1)]"
+            )} style={{ borderRadius: "12px" }}>
                 <div className="flex items-center gap-3 sm:gap-4">
                     <div className="relative shrink-0">
                         <svg className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 -rotate-90" viewBox="0 0 56 56">
@@ -214,7 +219,7 @@ function ActivityCard({
                             {!isExpired && (
                                 <circle
                                     cx="28" cy="28" r="26"
-                                    className={cn("fill-none transition-all duration-1000 ease-linear", isWarning ? "stroke-yellow-500" : isPaused ? "stroke-gray-600" : "stroke-red-500")}
+                                    className={cn("fill-none transition-all duration-1000 ease-linear", isWarning ? "stroke-yellow-500" : isPaused ? "stroke-gray-600" : "stroke-yellow-500")}
                                     strokeWidth="3"
                                     strokeDasharray="163.36"
                                     strokeDashoffset={163.36 * (1 - progressPercent / 100)}
@@ -223,7 +228,7 @@ function ActivityCard({
                             )}
                         </svg>
                         <div className="absolute inset-[4px] sm:inset-[5px] rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border border-gray-800">
-                            <span className={cn("text-sm sm:text-base md:text-xl font-black", isWarning ? "text-yellow-500" : isExpired ? "text-gray-600" : "text-red-500")}>
+                            <span className={cn("text-sm sm:text-base md:text-xl font-black", isWarning ? "text-yellow-500" : isExpired ? "text-gray-600" : "text-yellow-500")}>
                                 {entry.customerName.charAt(0).toUpperCase()}
                             </span>
                         </div>
@@ -231,11 +236,14 @@ function ActivityCard({
                             {isExpired ? (
                                 <div className="bg-gray-800 p-1 rounded-full border border-gray-700"><Clock className="w-3 h-3 text-gray-500" /></div>
                             ) : isWarning ? (
-                                <div className="bg-yellow-500 p-1 rounded-full border border-yellow-600 animate-pulse"><AlertCircle className="w-3 h-3 text-black" /></div>
+                                <div className="bg-yellow-500 p-1 rounded-full border border-yellow-600 animate-pulse shadow-[0_0_10px_rgba(234,179,8,0.8)]"><AlertCircle className="w-3 h-3 text-black" /></div>
                             ) : isPaused ? (
                                 <div className="bg-gray-700 p-1 rounded-full border border-gray-600"><Pause className="w-3 h-3 text-white" /></div>
                             ) : (
-                                <div className="bg-red-500 p-1 rounded-full border border-red-600"><Zap className="w-3 h-3 text-white" /></div>
+                                <div className="bg-yellow-500 p-1 rounded-full border border-red-600 shadow-[0_0_15px_rgba(255,215,0,0.8)] relative group-hover:animate-pulse">
+                                    <div className="absolute inset-0 rounded-full bg-yellow-400 animate-ping opacity-75"></div>
+                                    <Zap className="w-3 h-3 text-white relative z-10" />
+                                </div>
                             )}
                         </div>
                     </div>
@@ -257,9 +265,9 @@ function ActivityCard({
                         </div>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-500">
                             <span className="flex items-center gap-1 bg-gray-900/50 px-1.5 py-0.5 rounded-md border border-gray-800 shrink-0">
-                                <Clock className="w-3 h-3 text-red-500" /><span className="font-medium whitespace-nowrap">{startTimeString}</span>
+                                <Clock className="w-3 h-3 text-yellow-500" /><span className="font-medium whitespace-nowrap">{startTimeString}</span>
                             </span>
-                            <span className={cn("font-medium flex items-center gap-1 truncate", isWarning ? "text-yellow-500" : isExpired ? "text-gray-500" : isPaused ? "text-yellow-400" : "text-red-400")}>
+                            <span className={cn("font-medium flex items-center gap-1 truncate", isWarning ? "text-yellow-500" : isExpired ? "text-gray-500" : isPaused ? "text-yellow-400" : "text-yellow-400")}>
                                 {isExpired ? 'Ended ' : ''}{timeStatus}
                             </span>
                         </div>
@@ -270,7 +278,7 @@ function ActivityCard({
                             <div className="text-white font-bold text-lg sm:text-xl leading-none tracking-tight"><span className="text-xs text-gray-500 mr-0.5 font-normal align-top">₹</span>{entry.subTotal.toFixed(0)}</div>
                             {entry.snacks.length > 0 && (
                                 <div className="bg-gray-800/60 px-1.5 py-0.5 rounded text-[10px] sm:text-xs text-gray-300 flex items-center gap-1 border border-gray-700/50 whitespace-nowrap">
-                                    <Coffee className="w-3 h-3 text-red-400" />{entry.snacks.reduce((a, b) => a + b.quantity, 0)}
+                                    <Coffee className="w-3 h-3 text-yellow-400" />{entry.snacks.reduce((a, b) => a + b.quantity, 0)}
                                 </div>
                             )}
                         </div>
@@ -289,7 +297,7 @@ function ActivityCard({
                         {onDelete && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); if (confirm("Delete session?")) onDelete(entry.id); }}
-                                className="p-2 sm:p-1.5 rounded-lg bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors touch-manipulation"
+                                className="p-2 sm:p-1.5 rounded-lg bg-gray-800 hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors touch-manipulation"
                                 title="Delete"
                             >
                                 <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
@@ -300,7 +308,7 @@ function ActivityCard({
             </div>
             {!isExpired && (
                 <div className="absolute bottom-0 left-0 h-[2px] bg-gray-800 w-full">
-                    <div className={cn("h-full shadow-[0_0_10px_currentColor]", isWarning ? "bg-yellow-500 text-yellow-500" : "bg-red-500 text-red-500")} style={{ width: `${progressPercent}%` }} />
+                    <div className={cn("h-full shadow-[0_0_10px_currentColor]", isWarning ? "bg-yellow-500 text-yellow-500" : "bg-yellow-500 text-yellow-500")} style={{ width: `${progressPercent}%` }} />
                 </div>
             )}
         </motion.div>
@@ -318,7 +326,7 @@ function EmptyState({ tab }: { tab: 'ongoing' | 'completed' }) {
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity:100 transition-opacity duration-700" />
                 {tab === 'ongoing' ? (
                     <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
-                        <Ghost className="w-8 h-8 sm:w-10 sm:h-10 text-gray-600 group-hover:text-red-400 transition-colors" />
+                        <Ghost className="w-8 h-8 sm:w-10 sm:h-10 text-gray-600 group-hover:text-yellow-400 transition-colors" />
                     </motion.div>
                 ) : (
                     <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-gray-600 group-hover:text-yellow-400 transition-colors" />

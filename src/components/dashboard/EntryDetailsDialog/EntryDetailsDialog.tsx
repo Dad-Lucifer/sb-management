@@ -89,7 +89,6 @@ export function EntryDetailsDialog({
     const bookingTime = new Date(entry.timestamp)
     const entryIsHappyHour = isHappyHour(bookingTime)
     const happyHourRate = getHappyHourRate(parseInt(editNumberOfPeople) || 1)
-    const happyHourWindow = bookingTime.getHours() >= 10 && bookingTime.getHours() < 13 ? '10AM–1PM' : '8PM–11PM'
 
     const handleEditSnackChange = (itemId: string, delta: number) => {
         const itemDef = ALL_SNACKS_MAP[itemId]
@@ -152,38 +151,40 @@ export function EntryDetailsDialog({
                         exit={{ y: "100%", opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className={cn(
-                            "relative w-full flex flex-col shadow-2xl overflow-hidden bg-[#0a0a0a] border-t sm:border sm:border-gray-800",
-                            "h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-3xl sm:w-[600px] sm:max-w-2xl sm:my-4"
+                            "relative w-full flex flex-col shadow-[0_0_50px_rgba(239,68,68,0.1)] overflow-hidden bg-[#2A0800] border-t sm:border sm:border-yellow-900/40",
+                            "h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-none sm:w-[600px] sm:max-w-2xl sm:my-4"
                         )}
+                        style={{ borderRadius: "12px" }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Decorative Glow */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-32 bg-red-600/20 blur-[60px] rounded-full pointer-events-none" />
-                        <div className="absolute bottom-0 right-0 w-2/3 h-32 bg-orange-600/10 blur-[60px] rounded-full pointer-events-none" />
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-32 bg-yellow-600/20 blur-[60px] rounded-full pointer-events-none" />
+                        <div className="absolute bottom-0 right-0 w-2/3 h-32 bg-[#DAA520]/10 blur-[60px] rounded-full pointer-events-none" />
 
                         {/* Header Section */}
                         <div className="relative z-10 shrink-0 pt-6 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-4">
                                     {/* Avatar */}
-                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 p-[2px] shadow-lg shadow-red-500/20">
-                                        <div className="w-full h-full rounded-xl bg-gray-900 flex items-center justify-center">
-                                            <span className="text-2xl font-black text-white">{entry.customerName.charAt(0)}</span>
+                                    <div className="relative w-16 h-16 rounded-none bg-gradient-to-br from-red-600 to-red-800 p-[2px] shadow-[0_0_15px_rgba(239,68,68,0.3)] overflow-hidden group" style={{ borderRadius: "12px" }}>
+                                        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(239,68,68,0.2)_50%,transparent_100%)] bg-[length:100%_200%] animate-[scan_2s_linear_infinite]" />
+                                        <div className="w-full h-full bg-[#050505] flex items-center justify-center relative z-10 group-hover:bg-red-950/20 transition-colors">
+                                            <span className="text-2xl font-black text-yellow-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">{entry.customerName.charAt(0)}</span>
                                         </div>
                                     </div>
                                     <div className="pt-1">
-                                        <h2 className="text-xl font-bold text-white leading-tight flex items-center gap-2">
+                                        <h2 className="text-xl font-bold text-yellow-50 leading-tight flex items-center gap-2">
                                             {entry.customerName}
                                             {entry.isRenewed && <Crown className="w-4 h-4 text-yellow-400" />}
                                         </h2>
-                                        <p className="text-gray-400 text-sm mt-1 flex items-center gap-1">
+                                        <p className="text-yellow-600/70 text-sm mt-1 flex items-center gap-1">
                                             <Phone className="w-3.5 h-3.5" />
                                             {entry.phoneNumber}
                                         </p>
                                         <div className="flex items-center gap-2 mt-2">
                                             {entry.age && entry.age > 0 && (
-                                                <div className="text-xs font-medium text-gray-400 bg-gray-800/80 px-2 py-0.5 rounded border border-gray-700 flex items-center gap-1.5">
-                                                    <User className="w-3 h-3 text-red-500" />
+                                                <div className="text-xs font-medium text-yellow-600/70 bg-gray-800/80 px-2 py-0.5 rounded border border-gray-700 flex items-center gap-1.5">
+                                                    <User className="w-3 h-3 text-yellow-500" />
                                                     {entry.age}
                                                 </div>
                                             )}
@@ -191,7 +192,7 @@ export function EntryDetailsDialog({
                                                 <div className={cn(
                                                     "text-xs font-bold uppercase px-2 py-0.5 rounded border flex items-center gap-1.5",
                                                     entry.paymentMode === 'online'
-                                                        ? "bg-red-500/10 text-red-500 border-red-500/30"
+                                                        ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/30"
                                                         : "bg-green-500/10 text-green-400 border-green-500/30"
                                                 )}>
                                                     {entry.paymentMode === 'online' ? <CreditCard className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
@@ -212,33 +213,33 @@ export function EntryDetailsDialog({
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={onClose} className="p-2 rounded-full bg-gray-800/50 hover:bg-gray-700 text-white transition-colors">
+                                <button onClick={onClose} className="p-2 rounded-full bg-yellow-900/20 hover:bg-gray-700 text-yellow-50 transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             {/* Custom Segmented Control Tabs */}
-                            <div className="relative bg-gray-900/80 p-1.5 rounded-xl border border-gray-800 flex">
+                            <div className="relative bg-[#050505] p-1 border border-yellow-900/40 flex" style={{ borderRadius: "12px" }}>
                                 <div
                                     className={cn(
-                                        "absolute top-1.5 left-1.5 bottom-1.5 w-[calc(50%-6px)] bg-gray-800 rounded-lg shadow-sm transition-transform duration-300",
+                                        "absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-yellow-600/20 border border-yellow-500/50 shadow-sm transition-transform duration-300",
                                         activeSection === 'session' ? "translate-x-0" : "translate-x-full"
                                     )}
                                 />
                                 <button
                                     onClick={() => setActiveSection('session')}
-                                    className={cn("flex-1 relative z-10 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2", activeSection === 'session' ? "text-white" : "text-gray-500")}
+                                    className={cn("flex-1 relative z-10 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2", activeSection === 'session' ? "text-yellow-50" : "text-yellow-600/50")}
                                 >
                                     <Clock className="w-4 h-4" />
                                     Session
                                 </button>
                                 <button
                                     onClick={() => setActiveSection('supply')}
-                                    className={cn("flex-1 relative z-10 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2", activeSection === 'supply' ? "text-white" : "text-gray-500")}
+                                    className={cn("flex-1 relative z-10 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2", activeSection === 'supply' ? "text-yellow-50" : "text-yellow-600/50")}
                                 >
                                     <ShoppingCart className="w-4 h-4" />
                                     Supply
-                                    {totalItems > 0 && <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />}
+                                    {totalItems > 0 && <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />}
                                 </button>
                             </div>
                         </div>
@@ -253,15 +254,15 @@ export function EntryDetailsDialog({
                                         <div className="space-y-6">
                                             {/* Time Card */}
                                             <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50">
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">Duration (Hours)</label>
+                                                <label className="text-xs font-bold text-yellow-600/70 uppercase tracking-wider mb-3 block">Duration (Hours)</label>
                                                 <div className="flex items-center gap-3">
-                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditDuration(Math.max(0.5, parseFloat(editDuration) - 0.5).toString())} className="h-12 w-12 rounded-xl bg-gray-800 border border-gray-700 text-white hover:bg-gray-700 flex items-center justify-center">
+                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditDuration(Math.max(0.5, parseFloat(editDuration) - 0.5).toString())} className="h-12 w-12 rounded-xl bg-gray-800 border border-gray-700 text-yellow-50 hover:bg-gray-700 flex items-center justify-center">
                                                         <Minus className="w-5 h-5" />
                                                     </motion.button>
-                                                    <div className="flex-1 h-14 bg-black/50 rounded-xl border border-gray-800 flex items-center justify-center">
-                                                        <Input type="number" step="0.5" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} className="w-full h-full bg-transparent border-none text-center text-2xl font-black text-white focus:ring-0" />
+                                                    <div className="flex-1 h-14 bg-black/50 rounded-xl border border-yellow-900/40 flex items-center justify-center">
+                                                        <Input type="number" step="0.5" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} className="w-full h-full bg-transparent border-none text-center text-2xl font-black text-yellow-50 focus:ring-0" />
                                                     </div>
-                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditDuration((parseFloat(editDuration) + 0.5).toString())} className="h-12 w-12 rounded-xl bg-red-600 border border-red-500 text-white hover:bg-red-500 shadow-lg shadow-red-600/20 flex items-center justify-center">
+                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditDuration((parseFloat(editDuration) + 0.5).toString())} className="h-12 w-12 rounded-xl bg-yellow-600 border border-yellow-500 text-yellow-50 hover:bg-yellow-500 shadow-lg shadow-red-600/20 flex items-center justify-center">
                                                         <Plus className="w-5 h-5" />
                                                     </motion.button>
                                                 </div>
@@ -269,10 +270,10 @@ export function EntryDetailsDialog({
 
                                             {/* People Card */}
                                             <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50">
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">Party Size</label>
-                                                <div className="h-14 bg-black/50 rounded-xl border border-gray-800 flex items-center justify-center px-4">
-                                                    <User className="w-5 h-5 text-gray-500 mr-3" />
-                                                    <span className="text-xl font-bold text-white">{editNumberOfPeople} People</span>
+                                                <label className="text-xs font-bold text-yellow-600/70 uppercase tracking-wider mb-3 block">Party Size</label>
+                                                <div className="h-14 bg-black/50 rounded-xl border border-yellow-900/40 flex items-center justify-center px-4">
+                                                    <User className="w-5 h-5 text-yellow-600/50 mr-3" />
+                                                    <span className="text-xl font-bold text-yellow-50">{editNumberOfPeople} People</span>
                                                 </div>
                                             </div>
 
@@ -280,19 +281,19 @@ export function EntryDetailsDialog({
                                             {onSplitPayment && !entry.splitPayment && !readOnly && (
                                                 <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50">
                                                     <div className="flex items-center justify-between mb-3">
-                                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Split Payment</label>
+                                                        <label className="text-xs font-bold text-yellow-600/70 uppercase tracking-wider block">Split Payment</label>
                                                         <span className="text-xs text-blue-400 font-mono">Total: ₹{entry.subTotal}</span>
                                                     </div>
 
                                                     <div className="space-y-3">
                                                         <div className="relative">
-                                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">₹</div>
+                                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-600/50 pointer-events-none">₹</div>
                                                             <input
                                                                 type="number"
                                                                 value={splitAmount}
                                                                 onChange={(e) => setSplitAmount(e.target.value)}
                                                                 placeholder={`Enter ${splitTargetLabel} Amount`}
-                                                                className="w-full bg-black/50 border border-gray-700 rounded-xl py-3 pl-7 pr-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-gray-600"
+                                                                className="w-full bg-black/50 border border-gray-700 rounded-xl py-3 pl-7 pr-3 text-sm text-yellow-50 focus:outline-none focus:border-blue-500 transition-colors placeholder:text-gray-600"
                                                                 inputMode="decimal"
                                                             />
                                                         </div>
@@ -317,8 +318,8 @@ export function EntryDetailsDialog({
                                                             className={cn(
                                                                 "w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
                                                                 isValidSplit && !isSubmittingSplit
-                                                                    ? "bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-500/20"
-                                                                    : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                                                                    ? "bg-blue-600 text-yellow-50 hover:bg-blue-500 shadow-lg shadow-blue-500/20"
+                                                                    : "bg-gray-800 text-yellow-600/50 cursor-not-allowed"
                                                             )}
                                                         >
                                                             {isSubmittingSplit ? (
@@ -347,8 +348,8 @@ export function EntryDetailsDialog({
                                                             className={cn(
                                                                 "flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border transition-all duration-300",
                                                                 activeCategory === key
-                                                                    ? "bg-red-600 text-white border-red-500 shadow-lg shadow-red-600/20"
-                                                                    : "bg-gray-800/50 text-gray-500 border-gray-700 hover:bg-gray-800 hover:text-white"
+                                                                    ? "bg-yellow-600 text-yellow-50 border-yellow-500 shadow-lg shadow-red-600/20"
+                                                                    : "bg-yellow-900/20 text-yellow-600/50 border-gray-700 hover:bg-gray-800 hover:text-yellow-50"
                                                             )}
                                                             title={category.label}
                                                         >
@@ -376,15 +377,15 @@ export function EntryDetailsDialog({
                                                             className={cn(
                                                                 "relative p-4 rounded-2xl border transition-all duration-500 flex items-center justify-between gap-4 overflow-hidden group",
                                                                 qty > 0
-                                                                    ? "bg-red-500/5 border-red-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.1)]"
-                                                                    : "bg-gray-900/40 border-gray-800/50 hover:border-gray-700"
+                                                                    ? "bg-yellow-500/5 border-yellow-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.1)]"
+                                                                    : "bg-[#1a0505]/40 border-yellow-900/40/50 hover:border-gray-700"
                                                             )}
                                                         >
                                                             {/* Item Info */}
                                                             <div className="flex items-center gap-4 flex-1 min-w-0">
                                                                 <div className={cn(
                                                                     "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110",
-                                                                    qty > 0 ? "bg-red-600 text-white shadow-lg shadow-red-600/20" : "bg-gray-800 text-gray-400"
+                                                                    qty > 0 ? "bg-yellow-600 text-yellow-50 shadow-lg shadow-red-600/20" : "bg-gray-800 text-yellow-600/70"
                                                                 )}>
                                                                     <CategoryIcon className="w-5 h-5" />
                                                                 </div>
@@ -393,7 +394,7 @@ export function EntryDetailsDialog({
                                                                         {item.name}
                                                                         {qty > 4 && <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse" />}
                                                                     </h4>
-                                                                    <div className="text-xs font-mono text-red-400 mt-0.5">₹{item.price}</div>
+                                                                    <div className="text-xs font-mono text-yellow-400 mt-0.5">₹{item.price}</div>
                                                                 </div>
                                                             </div>
 
@@ -412,15 +413,15 @@ export function EntryDetailsDialog({
                                                                         <motion.button
                                                                             whileTap={{ scale: 0.9 }}
                                                                             onClick={() => handleEditSnackChange(item.id, -1)}
-                                                                            className="h-8 w-8 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
+                                                                            className="h-8 w-8 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-300 hover:text-yellow-50 flex items-center justify-center transition-colors"
                                                                         >
                                                                             <Minus className="w-4 h-4" />
                                                                         </motion.button>
-                                                                        <span className="w-6 text-center font-black text-white text-sm">{qty}</span>
+                                                                        <span className="w-6 text-center font-black text-yellow-50 text-sm">{qty}</span>
                                                                         <motion.button
                                                                             whileTap={{ scale: 0.9 }}
                                                                             onClick={() => handleEditSnackChange(item.id, 1)}
-                                                                            className="h-8 w-8 rounded-lg bg-red-600 hover:bg-red-500 text-white flex items-center justify-center transition-all shadow-lg shadow-red-600/10"
+                                                                            className="h-8 w-8 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-yellow-50 flex items-center justify-center transition-all shadow-lg shadow-red-600/10"
                                                                         >
                                                                             <Plus className="w-4 h-4" />
                                                                         </motion.button>
@@ -439,22 +440,22 @@ export function EntryDetailsDialog({
 
                         {/* Floating Action Footer */}
                         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black to-transparent z-20">
-                            <div className="bg-gray-900/90 backdrop-blur-md border border-gray-800 p-4 rounded-3xl shadow-2xl">
+                            <div className="bg-[#1a0505]/90 backdrop-blur-md border border-yellow-900/40 p-4 rounded-3xl shadow-2xl">
                                 <div className="flex justify-between items-center mb-4">
                                     <div>
-                                        <div className="text-xs text-gray-500 font-bold uppercase">Total Estimate</div>
-                                        <div className="text-2xl font-black text-white tracking-tight">
+                                        <div className="text-xs text-yellow-600/50 font-bold uppercase">Total Estimate</div>
+                                        <div className="text-2xl font-black text-yellow-50 tracking-tight">
                                             ₹{calculateEditSubTotal().toFixed(0)}
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
                                         <div className="px-3 py-1.5 bg-gray-800 rounded-lg text-xs font-bold text-gray-300 border border-gray-700">
-                                            <Clock className="w-3 h-3 inline mr-1 text-red-400" />
+                                            <Clock className="w-3 h-3 inline mr-1 text-yellow-400" />
                                             {editDuration}h
                                         </div>
                                         {totalItems > 0 && (
                                             <div className="px-3 py-1.5 bg-gray-800 rounded-lg text-xs font-bold text-gray-300 border border-gray-700">
-                                                <ShoppingCart className="w-3 h-3 inline mr-1 text-red-400" />
+                                                <ShoppingCart className="w-3 h-3 inline mr-1 text-yellow-400" />
                                                 {totalItems}
                                             </div>
                                         )}
@@ -464,7 +465,7 @@ export function EntryDetailsDialog({
                                     <Button
                                         onClick={onClose}
                                         variant="ghost"
-                                        className="h-14 rounded-xl text-gray-400 hover:text-white font-bold"
+                                        className="h-14 rounded-xl text-yellow-600/70 hover:text-yellow-50 font-bold"
                                     >
                                         Close
                                     </Button>
@@ -472,9 +473,11 @@ export function EntryDetailsDialog({
                                         <motion.div whileTap={{ scale: 0.98 }}>
                                             <Button
                                                 onClick={handleSubmit}
-                                                className="h-14 w-full bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white rounded-xl font-bold text-base shadow-xl shadow-red-900/20 border border-red-500/50"
+                                                className="h-14 w-full bg-yellow-600 hover:bg-yellow-500 text-yellow-50 rounded-none font-black text-base shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all relative overflow-hidden group"
+                                                style={{ borderRadius: "12px" }}
                                             >
-                                                Update Session
+                                                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] bg-[position:200%_0,0_0] bg-no-repeat transition-all duration-700 ease-out group-hover:bg-[position:-200%_0,0_0]"></div>
+                                                <span className="relative z-10">Update Session</span>
                                             </Button>
                                         </motion.div>
                                     )}
@@ -496,10 +499,10 @@ export function EntryDetailsDialog({
                                         transition={{ duration: 0.6, ease: "easeInOut" }}
                                         className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(34,197,94,0.5)]"
                                     >
-                                        <Check className="w-10 h-10 text-white" />
+                                        <Check className="w-10 h-10 text-yellow-50" />
                                     </motion.div>
-                                    <h2 className="text-2xl font-bold text-white mb-1">Saved!</h2>
-                                    <p className="text-gray-400">Total: ₹{calculateEditSubTotal().toFixed(0)}</p>
+                                    <h2 className="text-2xl font-bold text-yellow-50 mb-1">Saved!</h2>
+                                    <p className="text-yellow-600/70">Total: ₹{calculateEditSubTotal().toFixed(0)}</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>

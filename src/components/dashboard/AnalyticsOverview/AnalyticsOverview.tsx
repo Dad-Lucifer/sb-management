@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     TrendingUp, Users, Clock, PieChart as PieChartIcon,
@@ -34,7 +34,7 @@ export interface AnalyticsOverviewProps {
     onUpdateStock: (id: string, newQuantity: number) => Promise<void>;
 }
 
-export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: AnalyticsOverviewProps) {
+export const AnalyticsOverview = memo(function AnalyticsOverview({ historyData, stockData, onUpdateStock }: AnalyticsOverviewProps) {
     const [activeTab, setActiveTab] = useState<'revenue' | 'inventory' | 'traffic' | 'stock'>('revenue')
     const [selectedDayIndex, setSelectedDayIndex] = useState(0)
 
@@ -399,7 +399,7 @@ export function AnalyticsOverview({ historyData, stockData, onUpdateStock }: Ana
             </div>
         </>
     )
-}
+})
 
 function StatCard({ label, value, icon: Icon, color, gradient, borderColor }: any) {
     return (

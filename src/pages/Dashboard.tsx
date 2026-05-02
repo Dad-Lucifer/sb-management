@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { format, subDays } from 'date-fns'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, Timestamp, setDoc, runTransaction, where, increment } from 'firebase/firestore'
@@ -30,7 +30,6 @@ export default function GamingCafeDashboard() {
     const [focusedField, setFocusedField] = useState<string | null>(null)
     const [selectedEntry, setSelectedEntry] = useState<CustomerEntry | null>(null)
 
-    const [currentTime, setCurrentTime] = useState(new Date())
     const [activityTab, setActivityTab] = useState<'ongoing' | 'completed'>('ongoing')
     const { toast } = useToast()
 
@@ -45,8 +44,6 @@ export default function GamingCafeDashboard() {
     }, [recentEntries])
 
     useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000)
-
         // Fetch last 3 days history to support Analytics Overview (which shows 3 days)
         const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
         const q = query(
@@ -96,7 +93,6 @@ export default function GamingCafeDashboard() {
         })
 
         return () => {
-            clearInterval(timer)
             unsubscribe()
         }
     }, [])
@@ -115,7 +111,7 @@ export default function GamingCafeDashboard() {
 
 
 
-    const handleUpdateStock = async (id: string, newQuantity: number) => {
+    const handleUpdateStock = useCallback(async (id: string, newQuantity: number) => {
         try {
             await setDoc(doc(db, "inventory", "stock"), {
                 [id]: newQuantity
@@ -125,7 +121,7 @@ export default function GamingCafeDashboard() {
             console.error(error)
             toast({ variant: "destructive", title: "Error", description: "Could not update stock." })
         }
-    }
+    }, [toast])
 
     const deductStock = async (items: { id: string, quantity: number }[]): Promise<boolean> => {
         try {
@@ -322,13 +318,13 @@ export default function GamingCafeDashboard() {
         }, 1000)
     }
 
-    const openEntryDetails = (entry: CustomerEntry) => {
+    const openEntryDetails = useCallback((entry: CustomerEntry) => {
         setSelectedEntry(entry)
-    }
+    }, [])
 
-    const closeEntryDetails = () => {
+    const closeEntryDetails = useCallback(() => {
         setSelectedEntry(null)
-    }
+    }, [])
 
     const saveEntryChanges = async (newDuration: number, newPeople: number, snacks: SnackOrder[]) => {
         if (!selectedEntry) return
@@ -417,7 +413,7 @@ export default function GamingCafeDashboard() {
         }
     }
 
-    const handleDeleteEntry = async (entryId: string) => {
+    const handleDeleteEntry = useCallback(async (entryId: string) => {
         const entry = recentEntries.find(e => e.id === entryId)
         if (!entry) return
 
@@ -440,19 +436,12 @@ export default function GamingCafeDashboard() {
             console.error(error)
             toast({ variant: "destructive", title: "Error", description: "Could not delete session." })
         }
-    }
+    }, [recentEntries, toast])
 
-    const handleTogglePause = async (entry: CustomerEntry) => {
+    const handleTogglePause = useCallback(async (entry: CustomerEntry) => {
         const entryRef = doc(db, "entries", entry.id)
         try {
             if (entry.isPaused) {
-                // Resume logic: Shift start time by the duration it was paused to "skip" that time
-                // Or accumulate totalPausedTime. Let's use totalPausedTime for better tracking.
-                // Actually, if we use totalPausedTime, we need to adjust calculating active/expired logic everywhere.
-                // Simplest robust method: Shift timestamp forward.
-                // But user wants "Started Time". If we shift timestamp, started time changes.
-                // So better: Use totalPausedTime.
-
                 const pausedAt = entry.pausedAt || new Date()
                 const now = new Date()
                 const pauseDuration = now.getTime() - pausedAt.getTime()
@@ -465,7 +454,6 @@ export default function GamingCafeDashboard() {
                 })
                 toast({ title: "Session Resumed", className: "bg-green-600 border-green-500 text-white" })
             } else {
-                // Pause
                 await updateDoc(entryRef, {
                     isPaused: true,
                     pausedAt: Timestamp.now()
@@ -476,7 +464,7 @@ export default function GamingCafeDashboard() {
             console.error(error)
             toast({ variant: "destructive", title: "Error", description: "Could not update session status." })
         }
-    }
+    }, [toast])
 
     // Data for charts
     const getSnacksDistribution = (entries: CustomerEntry[]) => {
@@ -529,7 +517,7 @@ export default function GamingCafeDashboard() {
 
         const totalPaused = entry.totalPausedTime || 0
         const endTime = startTime + durationMs + totalPaused
-        return endTime <= currentTime.getTime()
+        return endTime <= Date.now()
     }
 
 
@@ -587,24 +575,39 @@ export default function GamingCafeDashboard() {
         }
     }
 
-    const historyData = [0, 1, 2].map(daysAgo => {
-        const date = subDays(currentTime, daysAgo)
+    const historyData = useMemo(() => [0, 1, 2].map(daysAgo => {
+        const date = subDays(new Date(), daysAgo)
         const label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : format(date, 'EEE, dd MMM')
         return {
             date,
             label,
             ...getStatsForDate(date)
         }
-    })
+    }), [recentEntries]) // Only recalculate when recentEntries change
+
+    const filteredRecentEntries = useMemo(() => 
+        recentEntries.filter(e => e.timestamp >= new Date(Date.now() - 24 * 60 * 60 * 1000)),
+    [recentEntries])
 
 
     return (
-        <div className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-blue-500/30">
-            {/* Premium Background with Depth */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-black to-black" />
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] opacity-30 animate-pulse" style={{ animationDuration: '4s' }} />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-[100px] opacity-30 animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+        <div className="min-h-screen bg-[#1a0505] text-[#f8f8f8] overflow-x-hidden selection:bg-yellow-500/30 font-montserrat">
+            {/* VIP Lounge Background */}
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3a0a0a] via-[#1a0505] to-[#0a0000]">
+                {/* Gold Dust Particles (Simulated with static layered radial gradients) */}
+                <div className="absolute top-10 left-[10%] w-2 h-2 bg-yellow-400/30 rounded-full blur-[2px] animate-[float_4s_ease-in-out_infinite]" />
+                <div className="absolute top-40 right-[20%] w-3 h-3 bg-yellow-300/20 rounded-full blur-[3px] animate-[float_6s_ease-in-out_infinite_1s]" />
+                <div className="absolute bottom-20 left-[30%] w-4 h-4 bg-yellow-500/10 rounded-full blur-[4px] animate-[float_5s_ease-in-out_infinite_2s]" />
+                <div className="absolute top-1/2 right-[10%] w-2 h-2 bg-yellow-200/20 rounded-full blur-[1px] animate-[float_7s_ease-in-out_infinite_0.5s]" />
+
+                {/* Luxurious Vignette Edge */}
+                <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
+                
+                {/* Elegant Corner Framing */}
+                <div className="absolute top-6 left-6 w-16 h-16 border-t-[1px] border-l-[1px] border-yellow-500/30 rounded-tl-3xl opacity-60" />
+                <div className="absolute top-6 right-6 w-16 h-16 border-t-[1px] border-r-[1px] border-yellow-500/30 rounded-tr-3xl opacity-60" />
+                <div className="absolute bottom-6 left-6 w-16 h-16 border-b-[1px] border-l-[1px] border-yellow-500/30 rounded-bl-3xl opacity-60" />
+                <div className="absolute bottom-6 right-6 w-16 h-16 border-b-[1px] border-r-[1px] border-yellow-500/30 rounded-br-3xl opacity-60" />
             </div>
 
             <div className="relative z-10 flex flex-col min-h-screen">
@@ -662,10 +665,9 @@ export default function GamingCafeDashboard() {
                                 />
 
                                 <RecentActivity
-                                    recentEntries={recentEntries.filter(e => e.timestamp >= new Date(Date.now() - 24 * 60 * 60 * 1000))}
+                                    recentEntries={filteredRecentEntries}
                                     activityTab={activityTab}
                                     setActivityTab={setActivityTab}
-                                    currentTime={currentTime}
                                     openEntryDetails={openEntryDetails}
                                     onDelete={handleDeleteEntry}
                                     onPause={handleTogglePause}

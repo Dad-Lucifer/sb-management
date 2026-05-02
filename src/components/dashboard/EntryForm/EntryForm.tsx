@@ -70,7 +70,7 @@ export function EntryForm({
             <div>
                 <div className="flex items-center gap-2 mb-2">
                     <div className="p-2 bg-red-600/10 rounded-lg">
-                        <Gamepad2 className="w-6 h-6 text-red-500" />
+                        <Gamepad2 className="w-6 h-6 text-yellow-500" />
                     </div>
                     <h2 className="text-xl font-light text-white">New Player Entry</h2>
                 </div>
@@ -111,21 +111,24 @@ export function EntryForm({
             )}
 
             <div id="entry-form" className="space-y-5 relative">
-                {/* XP Progress Bar */}
-                <div className="absolute -top-5 left-0 w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                {/* VIP Vault Progress Bar */}
+                <div className="absolute -top-5 left-0 w-full h-1.5 bg-[#2A0800] border border-yellow-900/50 rounded-full overflow-hidden shadow-inner">
                     <motion.div
-                        className="h-full bg-gradient-to-r from-red-500 to-yellow-500"
+                        className="h-full bg-gradient-to-r from-[#B8860B] via-[#FFD700] to-[#FFF2CD] relative"
                         initial={{ width: "0%" }}
                         animate={{
                             width: `${((customerName ? 10 : 0) + (phoneNumber ? 10 : 0) + (numberOfPeople ? 10 : 0) + (duration ? 10 : 0) + (age ? 10 : 0) + (Object.keys(selectedSnacks).length > 0 ? 20 : 0) + 20)}%`
                         }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
+                    >
+                        {/* Shimmer effect for progress bar */}
+                        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.4)_50%,transparent_100%)] w-[200%] animate-[shimmer_2s_infinite]" />
+                    </motion.div>
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="customerName" className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                        <User className="w-4 h-4 text-red-500" />
+                    <Label htmlFor="customerName" className="text-[11px] font-bold tracking-wider text-yellow-600/80 uppercase flex items-center gap-2 mb-1">
+                        <User className="w-4 h-4 text-yellow-500" />
                         Player Name
                     </Label>
                     <div className="relative group">
@@ -136,10 +139,10 @@ export function EntryForm({
                             onFocus={() => setFocusedField('customerName')}
                             onBlur={() => setFocusedField(null)}
                             placeholder="Enter player alias"
-                            className={`h-12 bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 rounded-lg pl-10 transition-all duration-300 ${focusedField === 'customerName' ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'group-hover:border-gray-700'
-                                } focus:border-red-500 focus:ring-0`}
+                            className={`h-12 bg-[#2A0800]/50 border border-yellow-900/40 text-yellow-50 placeholder-yellow-800/50 rounded-lg shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] pl-10 transition-all duration-300 ${focusedField === 'customerName' ? 'border-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.2)]' : 'group-hover:border-gray-700'
+                                } focus:border-yellow-500 focus:ring-0`}
                         />
-                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'customerName' ? 'text-red-500' : 'text-gray-600'}`}>
+                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'customerName' ? 'text-yellow-500' : 'text-gray-600'}`}>
                             <User className="w-4 h-4" />
                         </div>
                         {customerName && (
@@ -156,8 +159,8 @@ export function EntryForm({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="phoneNumber" className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-red-500" />
+                        <Label htmlFor="phoneNumber" className="text-[11px] font-bold tracking-wider text-yellow-600/80 uppercase flex items-center gap-2 mb-1">
+                            <Phone className="w-4 h-4 text-yellow-500" />
                             Contact Link
                         </Label>
                         <div className="relative group">
@@ -172,13 +175,13 @@ export function EntryForm({
                                 onFocus={() => setFocusedField('phoneNumber')}
                                 onBlur={() => setFocusedField(null)}
                                 placeholder="Enter contact number"
-                                className={`h-12 bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 rounded-lg pl-20 transition-all duration-300 ${focusedField === 'phoneNumber' ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'group-hover:border-gray-700'
-                                    } focus:border-red-500 focus:ring-0`}
+                                className={`h-12 bg-[#2A0800]/50 border border-yellow-900/40 text-yellow-50 placeholder-yellow-800/50 rounded-lg shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] pl-20 transition-all duration-300 ${focusedField === 'phoneNumber' ? 'border-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.2)]' : 'group-hover:border-gray-700'
+                                    } focus:border-yellow-500 focus:ring-0`}
                             />
-                            <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'phoneNumber' ? 'text-red-500' : 'text-gray-600'}`}>
+                            <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'phoneNumber' ? 'text-yellow-500' : 'text-gray-600'}`}>
                                 <Phone className="w-4 h-4" />
                             </div>
-                            <div className={`absolute left-9 top-1/2 -translate-y-1/2 font-medium transition-colors duration-300 ${focusedField === 'phoneNumber' ? 'text-red-500' : 'text-gray-500'}`}>
+                            <div className={`absolute left-9 top-1/2 -translate-y-1/2 font-medium transition-colors duration-300 ${focusedField === 'phoneNumber' ? 'text-yellow-500' : 'text-gray-500'}`}>
                                 +91
                             </div>
                         </div>
@@ -188,8 +191,8 @@ export function EntryForm({
 
 
                 <div className="space-y-2">
-                    <Label htmlFor="numberOfPeople" className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                        <User className="w-4 h-4 text-red-500" />
+                    <Label htmlFor="numberOfPeople" className="text-[11px] font-bold tracking-wider text-yellow-600/80 uppercase flex items-center gap-2 mb-1">
+                        <User className="w-4 h-4 text-yellow-500" />
                         Number of People
                     </Label>
 
@@ -204,10 +207,10 @@ export function EntryForm({
                             onBlur={() => setFocusedField(null)}
                             onWheel={(e) => (e.target as HTMLInputElement).blur()}
                             placeholder="Enter number of people"
-                            className={`h-12 bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 rounded-lg pl-10 transition-all duration-300 ${focusedField === 'numberOfPeople' ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'group-hover:border-gray-700'
-                                } focus:border-red-500 focus:ring-0`}
+                            className={`h-12 bg-[#2A0800]/50 border border-yellow-900/40 text-yellow-50 placeholder-yellow-800/50 rounded-lg shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] pl-10 transition-all duration-300 ${focusedField === 'numberOfPeople' ? 'border-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.2)]' : 'group-hover:border-gray-700'
+                                } focus:border-yellow-500 focus:ring-0`}
                         />
-                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'numberOfPeople' ? 'text-red-500' : 'text-gray-600'}`}>
+                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'numberOfPeople' ? 'text-yellow-500' : 'text-gray-600'}`}>
                             <User className="w-4 h-4" />
                         </div>
                     </div>
@@ -217,8 +220,8 @@ export function EntryForm({
             {/* AGE & PAYMENT */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="age" className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-red-500" />
+                    <Label htmlFor="age" className="text-[11px] font-bold tracking-wider text-yellow-600/80 uppercase flex items-center gap-2 mb-1">
+                        <Zap className="w-4 h-4 text-yellow-500" />
                         Age
                     </Label>
                     <div className="relative group">
@@ -232,21 +235,21 @@ export function EntryForm({
                             onFocus={() => setFocusedField('age')}
                             onBlur={() => setFocusedField(null)}
                             placeholder="Age"
-                            className={`h-12 bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 rounded-lg pl-10 transition-all duration-300 ${focusedField === 'age' ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'group-hover:border-gray-700'
-                                } focus:border-red-500 focus:ring-0`}
+                            className={`h-12 bg-[#2A0800]/50 border border-yellow-900/40 text-yellow-50 placeholder-yellow-800/50 rounded-lg shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] pl-10 transition-all duration-300 ${focusedField === 'age' ? 'border-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.2)]' : 'group-hover:border-gray-700'
+                                } focus:border-yellow-500 focus:ring-0`}
                         />
-                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'age' ? 'text-red-500' : 'text-gray-600'}`}>
+                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'age' ? 'text-yellow-500' : 'text-gray-600'}`}>
                             <User className="w-4 h-4" />
                         </div>
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-red-500" />
+                    <Label className="text-[11px] font-bold tracking-wider text-yellow-600/80 uppercase flex items-center gap-2 mb-1">
+                        <CreditCard className="w-4 h-4 text-yellow-500" />
                         Method
                     </Label>
-                    <div className="flex bg-gray-900/50 p-1 rounded-lg border border-gray-800 h-12">
+                    <div className="flex bg-[#0a0a0a] p-1 border border-gray-800/80 h-12" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}>
                         <button
                             onClick={() => setPaymentMode('online')}
                             className={`flex-1 flex items-center justify-center gap-2 rounded-md text-xs font-semibold transition-all duration-200 ${paymentMode === 'online' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
@@ -267,8 +270,8 @@ export function EntryForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
-                    <Label htmlFor="duration" className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-red-500" />
+                    <Label htmlFor="duration" className="text-[11px] font-bold tracking-wider text-yellow-600/80 uppercase flex items-center gap-2 mb-1">
+                        <Clock className="w-4 h-4 text-yellow-500" />
                         Session Time
                     </Label>
                     <div className="relative group">
@@ -282,18 +285,18 @@ export function EntryForm({
                             onBlur={() => setFocusedField(null)}
                             onWheel={(e) => (e.target as HTMLInputElement).blur()}
                             placeholder="Hours"
-                            className={`h-12 bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 rounded-lg pl-10 transition-all duration-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${focusedField === 'duration' ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'group-hover:border-gray-700'
-                                } focus:border-red-500 focus:ring-0`}
+                            className={`h-12 bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 rounded-lg pl-10 transition-all duration-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${focusedField === 'duration' ? 'border-yellow-500 shadow-[0_0_15px_rgba(255,215,0,0.2)]' : 'group-hover:border-gray-700'
+                                } focus:border-yellow-500 focus:ring-0`}
                         />
-                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'duration' ? 'text-red-500' : 'text-gray-600'}`}>
+                        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'duration' ? 'text-yellow-500' : 'text-gray-600'}`}>
                             <Clock className="w-4 h-4" />
                         </div>
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                        <Coffee className="w-4 h-4 text-red-500" />
+                    <Label className="text-[11px] font-bold tracking-wider text-yellow-600/80 uppercase flex items-center gap-2 mb-1">
+                        <Coffee className="w-4 h-4 text-yellow-500" />
                         Power-ups
                     </Label>
                     <div className="relative">
@@ -478,7 +481,7 @@ export function EntryForm({
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     {Object.keys(selectedSnacks).length > 0 && (
-                                                        <div className="bg-red-600/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black border border-red-500/20">
+                                                        <div className="bg-red-600/10 text-yellow-500 px-3 py-1 rounded-full text-[10px] font-black border border-red-500/20">
                                                             {Object.values(selectedSnacks).reduce((a, b) => a + b, 0)} ITEMS
                                                         </div>
                                                     )}
@@ -500,31 +503,40 @@ export function EntryForm({
             </div>
 
             <motion.div
-                className="bg-gradient-to-r from-red-900/20 to-black border border-red-500/20 rounded-xl p-4 md:p-6 relative overflow-hidden group"
+                className="bg-[#2A0800]/50 border border-yellow-900/40 rounded-2xl p-4 md:p-6 relative overflow-hidden group shadow-[inset_0_2px_20px_rgba(0,0,0,0.8),0_10px_30px_rgba(0,0,0,0.5)]"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
-                <div className="absolute inset-0 bg-red-600/5 group-hover:bg-red-600/10 transition-colors duration-300"></div>
+                {/* Golden shimmer effect inside the vault */}
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,215,0,0.05)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] animate-[shine_4s_infinite_ease-in-out]" />
+                
                 <div className="flex flex-col md:flex-row md:items-center justify-between relative z-10 gap-4">
                     <div className="flex items-center justify-between md:block">
-                        <div className="text-xs md:text-sm text-gray-400 mb-1 flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-yellow-500" />
-                            Total Loot Value
+                        <div className="text-[10px] md:text-xs text-yellow-500/80 font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                            <Trophy className="w-4 h-4 text-yellow-500 animate-pulse" />
+                            Vault Total
                         </div>
-                        <div className="text-2xl md:text-3xl font-bold text-white flex items-baseline gap-1">
-                            <span className="text-red-500">₹</span>
-                            {calculateSubTotal().toFixed(2)}
+                        <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFF2CD] via-[#FFD700] to-[#B8860B] flex items-baseline gap-1 font-cinzel drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                            <span className="text-yellow-600 text-2xl font-montserrat">₹</span>
+                            <motion.span 
+                                key={calculateSubTotal()} 
+                                initial={{ y: -20, opacity: 0 }} 
+                                animate={{ y: 0, opacity: 1 }} 
+                                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                            >
+                                {calculateSubTotal().toFixed(2)}
+                            </motion.span>
                         </div>
                     </div>
-                    <div className="flex flex-row md:flex-col justify-between md:justify-end md:text-right md:space-y-1 border-t border-gray-800 md:border-t-0 pt-3 md:pt-0">
-                        <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
+                    <div className="flex flex-row md:flex-col justify-between md:justify-end md:text-right md:space-y-1 border-t border-yellow-900/30 md:border-t-0 pt-3 md:pt-0">
+                        <div className="text-xs text-yellow-600/70 flex items-center md:justify-end gap-1 font-medium">
                             <Zap className="w-3 h-3" />
-                            Gaming: <span className="text-gray-300">₹{calculateSessionPriceWithTime(parseFloat(duration) || 0, parseInt(numberOfPeople) || 1, now).toFixed(2)}</span>
-                            {happyHour && <span className="text-yellow-500 font-bold ml-1">⚡HH</span>}
+                            Access: <span className="text-yellow-500">₹{calculateSessionPriceWithTime(parseFloat(duration) || 0, parseInt(numberOfPeople) || 1, now).toFixed(2)}</span>
+                            {happyHour && <span className="text-yellow-400 font-bold ml-1">⚡HH</span>}
                         </div>
-                        <div className="text-xs text-gray-500 flex items-center md:justify-end gap-1">
+                        <div className="text-xs text-yellow-600/70 flex items-center md:justify-end gap-1 font-medium">
                             <Coffee className="w-3 h-3" />
-                            Snacks: <span className="text-gray-300">₹{Object.entries(selectedSnacks).reduce((acc, [id, count]) => acc + (ALL_SNACKS_MAP[id]?.price || 0) * count, 0).toFixed(2)}</span>
+                            Services: <span className="text-yellow-500">₹{Object.entries(selectedSnacks).reduce((acc, [id, count]) => acc + (ALL_SNACKS_MAP[id]?.price || 0) * count, 0).toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -537,19 +549,19 @@ export function EntryForm({
                 <Button
                     onClick={handleProceed}
                     disabled={isAnimating}
-                    className={`w-full py-6 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-bold text-lg transition-all duration-300 shadow-lg shadow-red-500/25 relative overflow-hidden group ${isAnimating ? 'opacity-70 cursor-not-allowed' : ''
-                        }`}
+                    className={`w-full py-8 bg-gradient-to-br from-[#D4AF37] via-[#FFD700] to-[#B8860B] hover:from-[#FFD700] hover:to-[#DAA520] text-[#1a0505] rounded-xl font-cinzel font-bold text-xl md:text-2xl tracking-widest transition-all duration-500 shadow-[0_10px_30px_rgba(218,165,32,0.3)] hover:shadow-[0_15px_40px_rgba(255,215,0,0.5)] relative overflow-hidden group ${isAnimating ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.4)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] bg-[position:200%_0,0_0] bg-no-repeat transition-all duration-500 ease-out group-hover:bg-[position:-200%_0,0_0]" />
+                    
                     {isAnimating ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            Initializing...
+                        <span className="flex items-center justify-center gap-2 relative z-10">
+                            <div className="w-6 h-6 border-2 border-[#1a0505]/30 border-t-[#1a0505] rounded-full animate-spin"></div>
+                            AUTHORIZING...
                         </span>
                     ) : (
-                        <span className="flex items-center justify-center gap-2 relative z-10">
-                            <Zap className="w-5 h-5 fill-current" />
-                            START SESSION
+                        <span className="flex items-center justify-center gap-3 relative z-10 group-hover:scale-105 transition-transform duration-300 drop-shadow-sm">
+                            <Zap className="w-6 h-6 fill-current" />
+                            GRANT ACCESS
                         </span>
                     )}
                 </Button>
