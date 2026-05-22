@@ -18,11 +18,9 @@ export const isHappyHour = (date: Date): boolean => {
     return (isMorning || isNight) && !(hour === 13 && minute === 0) && !(hour === 23 && minute === 0)
 }
 
-// Happy Hour rates:
-//   1 person  → ₹50 / hr / person
-//   2+ people → ₹40 / hr / person
+// Happy Hour rate: ₹50 / hr / person (for everyone)
 export const getHappyHourRate = (numberOfPeople: number): number => {
-    return numberOfPeople === 1 ? 50 : 40
+    return 50
 }
 
 // Default (non-happy-hour) rates
