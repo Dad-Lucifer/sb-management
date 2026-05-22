@@ -19,7 +19,7 @@ export const isHappyHour = (date: Date): boolean => {
 }
 
 // Happy Hour rate: ₹50 / hr / person (for everyone)
-export const getHappyHourRate = (numberOfPeople: number): number => {
+export const getHappyHourRate = (_numberOfPeople: number): number => {
     return 50
 }
 
